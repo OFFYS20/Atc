@@ -272,6 +272,7 @@ canvas.spark{display:block;width:100%;height:46px;background:#070f14;border:1px 
   <div class="grp">
     <strong style="color:var(--accent);letter-spacing:.08em">SECTOR&nbsp;24</strong>
     <span class="lbl" id="clock">00:00:00</span>
+    <span class="lbl" id="ratingBadge"></span>
   </div>
   <div class="grp">
     <button id="btnPause" title="Pause / resume (` or Space)">&#10073;&#10073; PAUSE</button>
@@ -556,12 +557,33 @@ canvas.spark{display:block;width:100%;height:46px;background:#070f14;border:1px 
     <!-- ===== SECTOR ===== -->
     <div class="tabpane" id="tabSector">
       <div class="pblock">
+        <div class="lbl" style="display:flex;justify-content:space-between">
+          <span>Campaign</span><span id="ratingLbl"></span>
+        </div>
+        <div id="campaignList" class="mini"></div>
+        <div class="grid3" style="margin-top:4px">
+          <button id="btnCampStart">START STAGE</button>
+          <button id="btnCampNext">NEXT STAGE</button>
+          <button id="btnCampReset">RESET LADDER</button>
+        </div>
+      </div>
+      <div class="pblock">
         <div class="lbl">Briefing</div>
         <div class="kv" id="briefKv"></div>
       </div>
       <div class="pblock">
         <div class="lbl">Coordination</div>
         <div id="coordList" class="mini">Coordination is not active in this scenario.</div>
+      </div>
+      <div class="pblock">
+        <div class="lbl">Aerodrome</div>
+        <div id="groundList" class="mini"></div>
+        <div class="grid4" style="margin-top:4px">
+          <button id="btnPb" title="Pushback and start approved">PUSH</button>
+          <button id="btnLuaw" title="Line up and wait">LINE UP</button>
+          <button id="btnTo" title="Cleared for takeoff">TAKEOFF</button>
+          <button id="btnXr" title="Approve a runway crossing">CROSS</button>
+        </div>
       </div>
       <div class="pblock">
         <div class="lbl">Flow &amp; configuration</div>
@@ -582,6 +604,7 @@ canvas.spark{display:block;width:100%;height:46px;background:#070f14;border:1px 
         <div class="lbl">Realism</div>
         <div class="row">
           <label class="mini"><input type="checkbox" id="chkPilot" checked> Crew response &amp; error</label>
+          <label class="mini"><input type="checkbox" id="chkGround" checked> Ground &amp; tower</label>
         </div>
         <div class="row"><span class="k">Radar</span>
           <select id="selRadar">
@@ -1347,6 +1370,61 @@ const RUNWAYS = (function () {
   ];
 })();
 
+/* --- the ground ----------------------------------------------------------
+ * A deliberately simple aerodrome: one apron, a holding point beside each
+ * runway threshold, and straight taxi routes between them. Enough to build a
+ * departure queue, hold someone short, line them up, and have a landing
+ * aircraft ask to cross the other runway on its way in.
+ * ------------------------------------------------------------------------ */
+const APRON = { x: -0.15, y: 1.75 };
+const TAXI_KT = 22;            // ground speed while taxiing
+const PUSHBACK_S = 45;         // how long a pushback takes
+
+/** The holding point beside a runway's threshold. */
+function holdingPoint(rwy) {
+  return { x: rwy.thr.x + rwy.right.x * 0.22 - rwy.u.x * 0.12,
+           y: rwy.thr.y + rwy.right.y * 0.22 - rwy.u.y * 0.12 };
+}
+
+/** Where an aircraft that has just landed leaves the runway. */
+function exitPoint(rwy) {
+  return { x: rwy.thr.x + rwy.u.x * 1.25 + rwy.right.x * 0.22,
+           y: rwy.thr.y + rwy.u.y * 1.25 + rwy.right.y * 0.22 };
+}
+
+/**
+ * Does the taxi route from `from` to the apron cross another runway? Two
+ * runways that are not the one just vacated are checked; the crossing has to
+ * be approved before the aircraft will move.
+ */
+function crossingRunwayFor(fromPt, exceptPhys) {
+  for (const r of RUNWAYS) {
+    if (r.phys === exceptPhys) continue;
+    if (r.id !== '27' && r.id !== '14') continue;          // one entry per strip
+    const d = distToSegment(APRON.x, APRON.y, r.thr.x, r.thr.y, r.end.x, r.end.y);
+    const d2 = distToSegment(fromPt.x, fromPt.y, r.thr.x, r.thr.y, r.end.x, r.end.y);
+    /* the apron is on one side and the exit on the other */
+    if (d2 < 0.6 || d < 0.6) continue;
+    const seg = distToSegment((APRON.x + fromPt.x) / 2, (APRON.y + fromPt.y) / 2,
+                              r.thr.x, r.thr.y, r.end.x, r.end.y);
+    if (seg < 0.35) return r;
+  }
+  return null;
+}
+
+/** Everything sitting on, or about to sit on, a strip of concrete. */
+function groundOccupants(phys) {
+  const out = [];
+  for (const a of state.aircraft) {
+    if (!a.alive) continue;
+    const r = getRunway(a.departureRwy || a.rolloutRwy || a.crossingRwy);
+    if (!r || r.phys !== phys) continue;
+    if (a.phase === 'takeoff' || a.phase === 'rollout' || a.phase === 'lineup' ||
+        a.phase === 'crossing') out.push(a);
+  }
+  return out;
+}
+
 function getRunway(id) {
   const k = String(id || '').toUpperCase().replace(/^RWY?/, '').trim();
   return RUNWAYS.find(r => r.id === k) || null;
@@ -1482,6 +1560,45 @@ const SCENARIOS = {
                cells:0, emgChance:0, wind:{dirFrom:270,speed:8}, startArrivals:0 }
 };
 
+/* --- campaign -------------------------------------------------------------
+ * A ladder of shifts that get progressively harder, each with its own pass
+ * mark. The rating is earned across the run; like everything else here it
+ * lives in memory only.
+ * ------------------------------------------------------------------------ */
+const CAMPAIGN = [
+  { id:1,  name:'First solo',        scenario:'quiet',     rate:8,  mins:5,
+    need:{ landings:2 },                           note:'Land two. Nothing else matters yet.' },
+  { id:2,  name:'Steady flow',       scenario:'quiet',     rate:14, mins:8,
+    need:{ landings:4, violations:1 },             note:'Keep it tidy while the rate climbs.' },
+  { id:3,  name:'Crossing traffic',  scenario:'crossing',  rate:18, mins:8,
+    need:{ cleared:8, violations:1 },              note:'Overflights and departures at once.' },
+  { id:4,  name:'The bank',          scenario:'rush',      rate:24, mins:10,
+    need:{ landings:6, violations:2 },             note:'Arrivals stacked up. Sequence them.' },
+  { id:5,  name:'Weather day',       scenario:'weather',   rate:18, mins:10,
+    need:{ landings:5, violations:2, wxIgnored:2 },note:'Answer the deviation requests.' },
+  { id:6,  name:'Low visibility',    scenario:'lowvis',    rate:14, mins:10,
+    need:{ landings:4, violations:1 },             note:'Minima, extra spacing, go-arounds.' },
+  { id:7,  name:'Wind shift',        scenario:'windshift', rate:18, mins:12,
+    need:{ landings:5, violations:2 },             note:'The field turns round mid-shift.' },
+  { id:8,  name:'Flow control',      scenario:'flow',      rate:28, mins:12,
+    need:{ landings:6, violations:2, diversions:1 },note:'Miles in trail. Expect to hold.' },
+  { id:9,  name:'Coordination',      scenario:'coord',     rate:16, mins:12,
+    need:{ cleared:10, violations:2 },             note:'Negotiate every level you are given.' },
+  { id:10, name:'Full house',        scenario:'emergency', rate:24, mins:12,
+    need:{ landings:6, violations:2, crashes:0 },  note:'Everything at once. Good luck.' }
+];
+
+const RATINGS = [
+  { at:0,   label:'Trainee'            }, { at:120, label:'Controller, restricted' },
+  { at:300, label:'Controller'         }, { at:560, label:'Senior controller'      },
+  { at:900, label:'Watch supervisor'   }, { at:1400,label:'Sector chief'           }
+];
+function ratingLabel(points) {
+  let out = RATINGS[0].label;
+  for (const r of RATINGS) if (points >= r.at) out = r.label;
+  return out;
+}
+
 /* ============================================================================
  * SECTION 5 — SIMULATION STATE
  * One mutable object. Everything the simulator knows lives here, in memory.
@@ -1509,6 +1626,7 @@ const state = {
 
   /* realism switches */
   pilotRealism:true, radarRealism:false, radarMode:'smooth', radarSweepT:0,
+  groundOps:true,
   coordination:false, autoRunwayChange:true, notifyOnFix:false,
   shearRate:0, script:null, wakeLogged:new Set(),
   replay:{ recording:true, scrubbing:false, frames:[], lastAt:-999 },
@@ -1539,6 +1657,7 @@ const state = {
   pauseOnConflict:false, pauseOnArrival:false,
   advisor:false, hints:false, autoController:false, hotSeat:'both',
   personalBests:[],          // in memory only, like everything else here
+  campaign:{ active:false, stage:0, rating:0, results:[] },
   tutorial:null, lastScore:undefined,
   sequence:[],               // the controller's intended landing order
   aiPlans:null, aiTimer:0, aiSaid:0,
@@ -1615,7 +1734,10 @@ function newAircraft(kind, typeDef, rng) {
 
     /* lifecycle */
     kind,                     // arrival | departure | overflight
-    phase:'enroute',          // enroute | takeoff | climb | approach | missed | rollout
+    phase:'enroute',          // stand|pushback|taxi|holdShort|lineup|takeoff|rollout|
+                              // vacating|crossing|enroute|approach|missed
+    ground:null,              // { target:{x,y}, why:'' } while taxiing
+    pushbackT:0, crossingRwy:null, standAt:0, readyAt:0,
     spawnTime:state.simTime, idealSeconds:0, idealMiles:0, removeReason:null, alive:true,
     fuelMinutes:120, dumping:0, needsFuelDump:false, diverting:false, divertWarned:false,
     releaseAlt:0, modeCGarble:false,
@@ -1681,6 +1803,15 @@ function runPendingClearances(ac) {
       try { c.apply(); } catch (e) { /* a clearance overtaken by events */ }
     } else { i++; }
   }
+}
+
+/** How many aircraft are currently anywhere on the aerodrome. */
+function countOnGround() {
+  let n = 0;
+  for (const a of state.aircraft) {
+    if (a.alive && GROUND_PHASES.indexOf(a.phase) >= 0) n++;
+  }
+  return n;
 }
 
 /** True when a spawn point is clear of existing traffic. */
@@ -1757,21 +1888,34 @@ function spawnDeparture(rng) { return spawnDepartureNow(null); }
 function spawnDepartureNow(callsign) {
   const rng = state.rng;
   if (state.groundStopUntil && state.simTime < state.groundStopUntil) return null;
-  /* Departures need a free runway to line up on. */
-  const rwyId = rng.chance(0.65) ? state.activeDep : (reciprocalRunway(state.activeDep) === null
-                ? state.activeDep : (state.activeDep === '27' || state.activeDep === '09' ? '32' : '27'));
+  if (!state.groundOps) {
+    /* Ground operations off: line it up on the runway as before. */
+    const r0 = getRunway(state.activeDep);
+    if (!r0 || !runwayIsFree(r0)) return null;
+  }
+  /* Most traffic uses the runway in use; some takes the other strip. */
+  const other = (state.activeDep === '27' || state.activeDep === '09') ? '32' : '27';
+  const rwyId = rng.chance(0.68) ? state.activeDep : other;
   const rwy   = getRunway(rwyId) || getRunway(state.activeDep);
-  if (!rwy || !runwayIsFree(rwy)) return null;
+  if (!rwy) return null;
+  if (state.groundOps && countOnGround() >= 6) return null;   // apron is full
 
   const ac = newAircraft('departure', rng.pick(TYPES), rng);
   if (callsign) { state.usedCallsigns.delete(ac.callsign); ac.callsign = callsign;
                   state.usedCallsigns.add(callsign); }
-  ac.x = rwy.thr.x; ac.y = rwy.thr.y;
+  if (state.groundOps) {
+    ac.x = APRON.x + rng.range(-0.28, 0.28);
+    ac.y = APRON.y + rng.range(-0.18, 0.18);
+    ac.phase = 'stand';
+    ac.standAt = state.simTime;
+  } else {
+    ac.x = rwy.thr.x; ac.y = rwy.thr.y;
+    ac.phase = 'takeoff';
+  }
   ac.alt = FIELD.elev; ac.hdg = ac.assignedHdg = rwy.hdg;
   ac.ias = 0;
   ac.assignedIas = Math.min(250, ac.perf.cruiseIas);
   ac.assignedAlt = 5000;
-  ac.phase   = 'takeoff';
   ac.navMode = 'hdg';
   ac.departureRwy = rwy.id;
   ac.exitFix = rng.pick(DEPARTURE_EXITS);
@@ -1903,23 +2047,11 @@ function updateTraffic(dt) {
 /** A strip of concrete is busy while anything is rolling on it. */
 function runwayIsFree(rwy) {
   if (!rwy) return false;
-  for (const a of state.aircraft) {
-    if (!a.alive) continue;
-    if (a.phase === 'takeoff' && getRunway(a.departureRwy) &&
-        getRunway(a.departureRwy).phys === rwy.phys) return false;
-    if (a.phase === 'rollout' && getRunway(a.rolloutRwy) &&
-        getRunway(a.rolloutRwy).phys === rwy.phys) return false;
-  }
-  return true;
+  return groundOccupants(rwy.phys).length === 0;
 }
 function occupantOf(rwy, exclude) {
-  for (const a of state.aircraft) {
-    if (!a.alive || a === exclude) continue;
-    const r = getRunway(a.departureRwy || a.rolloutRwy);
-    if (!r || r.phys !== rwy.phys) continue;
-    if (a.phase === 'takeoff' || a.phase === 'rollout') return a;
-  }
-  return null;
+  const list = groundOccupants(rwy.phys).filter(a => a !== exclude);
+  return list.length ? list[0] : null;
 }
 
 /* ============================================================================
@@ -2464,6 +2596,211 @@ function declareEmergency(ac, kind) {
   return true;
 }
 
+/* --- ground movement -----------------------------------------------------
+ * Pushback, taxi, the departure queue at the holding point, line up and wait,
+ * and the runway crossing a landing aircraft needs on its way to the apron.
+ * ------------------------------------------------------------------------ */
+const GROUND_PHASES = ['stand','pushback','taxi','holdShort','lineup','takeoff',
+                       'rollout','vacating','crossing'];
+
+function onGround(ac) { return GROUND_PHASES.indexOf(ac.phase) >= 0; }
+
+/** Move toward a point at taxi speed. Returns true once it is there. */
+function taxiToward(ac, target, dt) {
+  const d = dist(ac.x, ac.y, target.x, target.y);
+  const step = TAXI_KT / 3600 * dt;
+  ac.alt = FIELD.elev; ac.vs = 0;
+  ac.ias = ac.gs = TAXI_KT;
+  if (d <= step || d < 1e-6) {
+    ac.x = target.x; ac.y = target.y; ac.ias = ac.gs = 0;
+    return true;
+  }
+  ac.hdg = ac.assignedHdg = ac.track = bearingTo(ac.x, ac.y, target.x, target.y);
+  const v = vecFromHeading(ac.hdg, 1);
+  ac.x += v.x * step; ac.y += v.y * step;
+  return false;
+}
+
+/** Where this aircraft is in the queue for its runway (1 = next). */
+function queuePosition(ac) {
+  const rwy = getRunway(ac.departureRwy);
+  if (!rwy) return 0;
+  const q = state.aircraft
+    .filter(a => a.alive && a.kind === 'departure' &&
+                 getRunway(a.departureRwy) && getRunway(a.departureRwy).phys === rwy.phys &&
+                 (a.phase === 'holdShort' || a.phase === 'lineup'))
+    .sort((a, b) => (a.readyAt || 0) - (b.readyAt || 0));
+  const i = q.findIndex(a => a.id === ac.id);
+  return i < 0 ? 0 : i + 1;
+}
+
+function groundUpdate(ac, dt) {
+  const rwy = getRunway(ac.departureRwy || ac.rolloutRwy);
+
+  switch (ac.phase) {
+    case 'stand':
+      ac.ias = ac.gs = 0; ac.alt = FIELD.elev;
+      if (!ac.askedPushback && state.simTime - ac.standAt > 25) {
+        ac.askedPushback = true;
+        log('pilot', ac.callsign + ' at the stand, request pushback and start, ' +
+            (ac.procedure || 'via ' + ac.exitFix) + ', runway ' + ac.departureRwy + '.');
+      }
+      break;
+
+    case 'pushback':
+      ac.ias = ac.gs = 0;
+      ac.pushbackT -= dt;
+      ac.hdg = ac.assignedHdg = normalizeHeading(ac.hdg + 40 * dt);   // swinging round
+      if (ac.pushbackT <= 0) {
+        ac.phase = 'taxi';
+        ac.ground = { target: holdingPoint(rwy || getRunway(state.activeDep)), why:'holding point' };
+        log('pilot', ac.callsign + ' pushback complete, taxiing to holding point runway ' +
+            ac.departureRwy + '.');
+      }
+      break;
+
+    case 'taxi': {
+      if (!ac.ground) { ac.phase = 'holdShort'; break; }
+      if (taxiToward(ac, ac.ground.target, dt)) {
+        if (ac.kind === 'departure') {
+          ac.phase = 'holdShort';
+          ac.readyAt = state.simTime;
+          ac.hdg = ac.assignedHdg = rwy ? rwy.hdg : ac.hdg;
+          log('pilot', ac.callsign + ' holding short runway ' + ac.departureRwy +
+              ', number ' + queuePosition(ac) + ', ready for departure.');
+        } else {
+          markForRemoval(ac, 'landed');           // an arrival has reached the apron
+        }
+        ac.ground = null;
+      }
+      break;
+    }
+
+    case 'holdShort':
+      ac.ias = ac.gs = 0;
+      ac.hdg = ac.assignedHdg = rwy ? rwy.hdg : ac.hdg;
+      break;
+
+    case 'lineup':
+      if (rwy && taxiToward(ac, rwy.thr, dt)) {
+        ac.hdg = ac.assignedHdg = rwy.hdg;
+        ac.ias = ac.gs = 0;
+        if (!ac.linedUp) {
+          ac.linedUp = true;
+          log('pilot', ac.callsign + ' lined up runway ' + ac.departureRwy + ', waiting.');
+        }
+      }
+      break;
+
+    case 'vacating': {
+      const target = ac.ground ? ac.ground.target : exitPoint(getRunway(ac.rolloutRwy));
+      if (taxiToward(ac, target, dt)) {
+        const r = getRunway(ac.rolloutRwy);
+        const cross = state.groundOps ? crossingRunwayFor(target, r ? r.phys : null) : null;
+        if (cross) {
+          ac.phase = 'crossing';
+          ac.crossingRwy = cross.id;
+          ac.crossApproved = false;
+          log('pilot', ac.callsign + ' is holding short of runway ' + cross.id +
+              ', request crossing to the apron.');
+        } else {
+          ac.phase = 'taxi';
+          ac.rolloutRwy = null;
+          ac.ground = { target: { x:APRON.x, y:APRON.y }, why:'apron' };
+        }
+      }
+      break;
+    }
+
+    case 'crossing':
+      ac.ias = ac.gs = 0;
+      if (ac.crossApproved) {
+        ac.phase = 'taxi';
+        ac.ground = { target: { x:APRON.x, y:APRON.y }, why:'apron' };
+        ac.crossingRwy = null;
+        ac.rolloutRwy = null;
+      }
+      break;
+  }
+  ac.track = ac.hdg;
+}
+
+/* --- ground clearances ---------------------------------------------------- */
+function cmdPushback(ac) {
+  if (ac.phase !== 'stand') return { ok:false, msg:ac.callsign + ' is not at a stand' };
+  return { ok:true, msg: ac.callsign + ', pushback and start approved.',
+           effect: () => { ac.phase = 'pushback'; ac.pushbackT = PUSHBACK_S; } };
+}
+
+function cmdLineUp(ac) {
+  if (ac.phase !== 'holdShort') {
+    return { ok:false, msg:ac.callsign + ' is not holding short' };
+  }
+  const rwy = getRunway(ac.departureRwy);
+  const occ = occupantOf(rwy, ac);
+  if (occ) {
+    return { ok:false, msg:ac.callsign + ': runway ' + ac.departureRwy +
+                           ' is occupied by ' + occ.callsign };
+  }
+  return { ok:true, msg: ac.callsign + ', line up runway ' + ac.departureRwy + ' and wait.',
+           effect: () => { ac.phase = 'lineup'; ac.linedUp = false; } };
+}
+
+function cmdTakeoff(ac) {
+  if (ac.phase !== 'holdShort' && ac.phase !== 'lineup') {
+    return { ok:false, msg:ac.callsign + ' is not ready for departure' };
+  }
+  const rwy = getRunway(ac.departureRwy);
+  const occ = occupantOf(rwy, ac);
+  if (occ) {
+    return { ok:false, msg:ac.callsign + ': runway ' + ac.departureRwy +
+                           ' is occupied by ' + occ.callsign };
+  }
+  /* Something on short final to this runway means no departure. */
+  const shortFinal = state.aircraft.find(a => a.alive && a.navMode === 'approach' &&
+    getRunway(a.approach.rwy) && getRunway(a.approach.rwy).phys === rwy.phys &&
+    runwayGeometry(a, getRunway(a.approach.rwy)).along < 4);
+  if (shortFinal) {
+    return { ok:false, msg:ac.callsign + ': unable, ' + shortFinal.callsign +
+                           ' is on short final to runway ' + ac.departureRwy };
+  }
+  if (state.groundStopUntil > state.simTime) {
+    return { ok:false, msg:'Departures are stopped for another ' +
+                           fmtMMSS(state.groundStopUntil - state.simTime) };
+  }
+  return {
+    ok:true, msg: ac.callsign + ', runway ' + ac.departureRwy + ', cleared for takeoff.',
+    effect: () => {
+      ac.phase = 'takeoff';
+      ac.rotated = false;
+      ac.x = rwy.thr.x; ac.y = rwy.thr.y;
+      ac.hdg = ac.assignedHdg = rwy.hdg;
+    }
+  };
+}
+
+function cmdHoldShort(ac) {
+  if (ac.phase !== 'lineup') return { ok:false, msg:ac.callsign + ' is not lined up' };
+  const rwy = getRunway(ac.departureRwy);
+  return { ok:true, msg: ac.callsign + ', vacate and hold short runway ' + ac.departureRwy + '.',
+           effect: () => { ac.phase = 'holdShort'; ac.linedUp = false;
+                           const hp = holdingPoint(rwy); ac.x = hp.x; ac.y = hp.y; } };
+}
+
+function cmdCrossRunway(ac) {
+  if (ac.phase !== 'crossing') {
+    return { ok:false, msg:ac.callsign + ' is not waiting to cross' };
+  }
+  const rwy = getRunway(ac.crossingRwy);
+  const occ = occupantOf(rwy, ac);
+  if (occ) {
+    return { ok:false, msg:ac.callsign + ': runway ' + ac.crossingRwy + ' is occupied by ' +
+                           occ.callsign };
+  }
+  return { ok:true, msg: ac.callsign + ', cross runway ' + ac.crossingRwy + ' without delay.',
+           effect: () => { ac.crossApproved = true; } };
+}
+
 /* --- ground phases ------------------------------------------------------- */
 function groundRoll(ac, dt) {
   const rwy = getRunway(ac.departureRwy);
@@ -2497,7 +2834,11 @@ function rolloutUpdate(ac, dt) {
     ac.hdg = rwy.hdg;
   }
   ac.gs = ac.ias;  ac.vs = 0;  ac.alt = FIELD.elev;  ac.track = ac.hdg;
-  if (ac.ias < 25 && !ac.emergencyRollout) markForRemoval(ac, 'landed');
+  if (ac.ias < 25 && !ac.emergencyRollout) {
+    if (!state.groundOps) { markForRemoval(ac, 'landed'); return; }
+    ac.phase = 'vacating';
+    ac.ground = { target: exitPoint(rwy || getRunway(state.activeArr)), why:'runway exit' };
+  }
 }
 
 /* --- published-procedure profile ------------------------------------------
@@ -2614,6 +2955,9 @@ function updateAircraft(ac, dt) {
 
   if (ac.phase === 'takeoff' && !ac.rotated) { groundRoll(ac, dt); return; }
   if (ac.phase === 'rollout')                { rolloutUpdate(ac, dt); return; }
+  /* The takeoff roll and the landing roll are handled above; everything else
+     on the aerodrome is taxiing, queuing or waiting. */
+  if (onGround(ac) && ac.phase !== 'takeoff') { groundUpdate(ac, dt); return; }
 
   updateWeatherRequest(ac, dt);
 
@@ -2931,7 +3275,7 @@ function isViolation(latNm, vertFt) {
 /** Aircraft that take part in separation at all. */
 function separationEligible(ac) {
   if (!ac.alive) return false;
-  if (ac.phase === 'takeoff' || ac.phase === 'rollout') return false;
+  if (onGround(ac)) return false;
   if (ac.alt < FIELD.elev + SEP_EXEMPT_AGL_FT) return false;   // tower's problem
   return true;
 }
@@ -3080,7 +3424,8 @@ function detectConflicts() {
         a.alertLevel = Math.max(a.alertLevel, level);
         b.alertLevel = Math.max(b.alertLevel, level);
         rec.predT = pred.t;
-        if (level === 2) violations++; else advisories++;
+        if (level === 2) violations++;
+        else { advisories++; if (rec.since === state.simTime) tone('advisory'); }
       if (rec.level === 2 && !rec.paused && state.pauseOnConflict) {
         rec.paused = true;
         togglePause(true);
@@ -3426,7 +3771,9 @@ function accumulateHeat() {
  * ------------------------------------------------------------------------ */
 function parseScript(text) {
   const out = { header: [], events: [], errors: [] };
-  const lines = String(text || '').split(/\r?\n/);
+  /* A bare one-line session code expands into its script form first. */
+  const compact = parseSessionCodeCompact(text);
+  const lines = String(compact === null ? (text || '') : compact).split(/\r?\n/);
   lines.forEach((raw, n) => {
     const line = raw.replace(/#.*$/, '').trim();
     if (!line) return;
@@ -3711,7 +4058,8 @@ function stepSim(dt) {
 
 const CMD_SYNTAX =
   'H/HL/HR<000-360>, C/D/A<level>, EXP, BLK<lo>-<hi>, PD, S<kt>/SN/S+<kt>/S-<kt>, ' +
-  'DCT <fix>, HOLD <fix>, XH, ILS <rwy>, DVA, CAN, GA, DEV L|R|N, CANR, HO, QSY, ?';
+  'DCT <fix>, HOLD <fix>, XH, ILS <rwy>, DVA, CAN, GA, DEV L|R|N, CANR, HO, QSY, ' +
+  'PB, LUAW, TO, HS, XR, ?';
 
 /** 1-3 digits = flight level, 4-5 digits = feet. Returns feet or null. */
 function parseAltitudeToken(digits) {
@@ -4105,6 +4453,11 @@ function applyToken(ac, tokens, i) {
     if (!next) return { consumed:1, ok:false, msg:'DEV needs L, R or N' };
     return Object.assign({ consumed:2 }, cmdDeviation(ac, next));
   }
+  if (t === 'PB' || t === 'PUSH')   return Object.assign({ consumed:1 }, cmdPushback(ac));
+  if (t === 'LUAW' || t === 'LU')   return Object.assign({ consumed:1 }, cmdLineUp(ac));
+  if (t === 'TO' || t === 'CTO')    return Object.assign({ consumed:1 }, cmdTakeoff(ac));
+  if (t === 'HS')                   return Object.assign({ consumed:1 }, cmdHoldShort(ac));
+  if (t === 'XR' || t === 'CROSS')  return Object.assign({ consumed:1 }, cmdCrossRunway(ac));
   if (t === 'NOTE') {
     const text = tokens.slice(i + 1).join(' ');
     ac.note = text;
@@ -4250,7 +4603,7 @@ function runCommandTokens(ac, tokens, start) {
     return false;
   }
   if (ac.phase === 'rollout') {
-    log('err', ac.callsign + ' has landed and is clearing the runway.');
+    log('err', ac.callsign + ' is still rolling out.');
     return false;
   }
 
@@ -4523,11 +4876,71 @@ function drawRunways() {
     ctx.beginPath(); ctx.moveTo(a.sx, a.sy); ctx.lineTo(b.sx, b.sy); ctx.stroke();
   }
   ctx.lineWidth = 1;
+
+  /* the aerodrome: apron, taxi routes and holding points */
+  if (state.groundOps && state.view.pxPerNm > 14) {
+    const ap = worldToScreen(APRON.x, APRON.y);
+    ctx.strokeStyle = '#2c4550';
+    ctx.lineWidth = Math.max(1.5, state.view.pxPerNm * 0.05);
+    for (const r of RUNWAYS) {
+      if (r.id !== '27' && r.id !== '32') continue;      // one holding point per strip
+      const hp = holdingPoint(r);
+      const h = worldToScreen(hp.x, hp.y);
+      ctx.beginPath(); ctx.moveTo(ap.sx, ap.sy); ctx.lineTo(h.sx, h.sy); ctx.stroke();
+      /* the hold-short bar */
+      const perp = { x: r.u.x * 0.06, y: r.u.y * 0.06 };
+      const b1 = worldToScreen(hp.x - perp.x, hp.y - perp.y);
+      const b2 = worldToScreen(hp.x + perp.x, hp.y + perp.y);
+      ctx.strokeStyle = '#c8b040';
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(b1.sx, b1.sy); ctx.lineTo(b2.sx, b2.sy); ctx.stroke();
+      ctx.strokeStyle = '#2c4550';
+      ctx.lineWidth = Math.max(1.5, state.view.pxPerNm * 0.05);
+    }
+    ctx.fillStyle = '#1d2f38';
+    ctx.beginPath();
+    ctx.arc(ap.sx, ap.sy, Math.max(4, state.view.pxPerNm * 0.42), 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = C.dim;
+    ctx.font = '9px monospace';
+    ctx.fillText('APRON', ap.sx - 16, ap.sy - state.view.pxPerNm * 0.5);
+    ctx.lineWidth = 1;
+  }
+
   /* field label */
-  const f = worldToScreen(FIELD.x, FIELD.y + 2.1);
+  const f = worldToScreen(FIELD.x, FIELD.y + 2.6);
   ctx.fillStyle = C.rwy;
   ctx.font = 'bold 10px monospace';
   ctx.fillText(FIELD.name, f.sx - 14, f.sy);
+  ctx.restore();
+}
+
+/**
+ * Ground traffic. Too small to be a radar target, so it is drawn as a plain
+ * marker; the callsign only appears once the scope is zoomed in enough to
+ * read it without cluttering the approach picture.
+ */
+function drawGroundTraffic() {
+  const zoomed = state.view.pxPerNm > 14;
+  ctx.save();
+  ctx.font = '9px monospace';
+  for (const ac of state.aircraft) {
+    if (!ac.alive || !onGround(ac) || ac.phase === 'takeoff') continue;
+    const s = worldToScreen(ac.x, ac.y);
+    const waiting = ac.phase === 'crossing' ||
+                    (ac.phase === 'holdShort' && queuePosition(ac) === 1);
+    ctx.fillStyle = ac.id === state.selectedId ? C.acSel
+                  : ac.phase === 'lineup' ? pal('red')
+                  : waiting ? pal('amber') : '#7e97a4';
+    const sz = zoomed ? 3.5 : 2;
+    ctx.fillRect(s.sx - sz, s.sy - sz, sz * 2, sz * 2);
+    if (zoomed) {
+      ctx.fillText(ac.callsign, s.sx + 6, s.sy + 3);
+      if (ac.phase === 'holdShort') {
+        ctx.fillText('#' + queuePosition(ac), s.sx - 18, s.sy + 3);
+      }
+    }
+  }
   ctx.restore();
 }
 
@@ -4917,7 +5330,9 @@ function mapLabelObstacles() {
 
 function layoutDataBlocks() {
   const obstacles = mapLabelObstacles();
-  const items = state.aircraft.filter(a => passesFilter(a) && a.xpdr !== 'OFF').map(ac => {
+  const items = state.aircraft
+    .filter(a => passesFilter(a) && a.xpdr !== 'OFF' && !(onGround(a) && a.phase !== 'takeoff'))
+    .map(ac => {
     const d = displayPos(ac);
     const s = worldToScreen(d.x, d.y);
     const sz = blockSize(ac);
@@ -5029,6 +5444,7 @@ function drawDataBlocks() {
   for (const ac of state.aircraft) {
     const r = ac.blockRect;
     if (!r || !passesFilter(ac) || ac.xpdr === 'OFF') continue;
+    if (onGround(ac) && ac.phase !== 'takeoff') continue;
     const d = displayPos(ac);
     const s = worldToScreen(d.x, d.y);
     const sel = ac.id === state.selectedId || state.multiSelect.has(ac.id);
@@ -5109,6 +5525,7 @@ function render() {
   drawRoutePreview();
   drawConflictLines();
   drawAircraftSymbols();
+  drawGroundTraffic();
   drawTools();
 
   const nowMs = performance.now();
@@ -5283,7 +5700,17 @@ function hintFor(ac) {
   if (ac.wxRequest) return 'answer the weather deviation request';
   if (ac.needsFuelDump && !ac.dumping) return 'approve fuel dumping (DUMP)';
   if (ac.emergency === 'fuel') return 'priority to the field — ' + fmtMMSS(ac.emgDeadline - state.simTime) + ' left';
-  if (ac.phase === 'takeoff') return 'rolling — nothing needed yet';
+  if (ac.phase === 'stand')     return 'approve pushback (PB)';
+  if (ac.phase === 'pushback')  return 'pushing back — it will taxi itself';
+  if (ac.phase === 'taxi')      return 'taxiing — nothing needed';
+  if (ac.phase === 'holdShort') return queuePosition(ac) === 1
+      ? 'number one — line it up (LUAW) or clear it for takeoff (TO)'
+      : 'number ' + queuePosition(ac) + ' in the queue';
+  if (ac.phase === 'lineup')    return 'on the runway — clear it for takeoff (TO) or send it back (HS)';
+  if (ac.phase === 'crossing')  return 'approve the runway crossing (XR)';
+  if (ac.phase === 'vacating')  return 'vacating the runway';
+  if (ac.phase === 'rollout')   return 'landing roll';
+  if (ac.phase === 'takeoff')   return 'rolling — nothing needed yet';
 
   if (ac.kind === 'arrival') {
     const rwy = getRunway(state.activeArr);
@@ -5354,6 +5781,12 @@ function runAiController(dt) {
     if (ac.wxRequest) { say(ac.callsign + ' DEV ' + ac.wxRequest.side); continue; }
     if (ac.needsFuelDump && !ac.dumping) { say(ac.callsign + ' DUMP'); continue; }
 
+    if (onGround(ac) && ac.phase !== 'takeoff') {
+      if (ac.phase === 'stand' && ac.askedPushback) { say(ac.callsign + ' PB'); continue; }
+      if (ac.phase === 'crossing') { say(ac.callsign + ' XR'); continue; }
+      if (ac.phase === 'holdShort' && queuePosition(ac) === 1) { say(ac.callsign + ' TO'); }
+      continue;
+    }
     if (ac.kind === 'departure') {
       const need = releaseAltFor(ac);
       if (ac.assignedAlt < need) say(ac.callsign + ' C' + String(Math.round(need / 100)).padStart(3, '0'));
@@ -5494,21 +5927,37 @@ function ensureAudio() {
     if (AC) audioCtx = new AC();
   } catch (e) { audioCtx = null; }
 }
-const TONES = { alert:[880,0.35], ga:[520,0.30], wx:[660,0.18], emg:[320,0.55] };
+/* Distinct voices: an advisory is a soft single note, a violation is an
+   insistent high one, so you can tell them apart without looking. */
+const TONES = {
+  advisory:[494, 0.16, 'sine'],     // predicted conflict
+  alert:   [988, 0.38, 'square'],   // separation lost
+  ga:      [520, 0.30, 'square'],
+  wx:      [660, 0.18, 'sine'],
+  emg:     [320, 0.55, 'sawtooth']
+};
 function tone(kind) {
   if (!state.audioEnabled || !audioCtx) return;
   const spec = TONES[kind];
   if (!spec) return;
   const nowMs = performance.now();
-  if (nowMs - state.lastToneMs < 850) return;         // don't machine-gun
+  if (!state.lastTone) state.lastTone = {};
+  const gap = kind === 'advisory' ? 4000 : 850;
+  if (nowMs - (state.lastTone[kind] || -1e9) < gap) return;   // don't machine-gun
+  if (kind === 'advisory' && nowMs - (state.lastTone.alert || -1e9) < 1500) return;
+  state.lastTone[kind] = nowMs;
   state.lastToneMs = nowMs;
   try {
     const t = audioCtx.currentTime;
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
-    osc.type = 'square';
+    osc.type = spec[2] || 'square';
     osc.frequency.setValueAtTime(spec[0], t);
     if (kind === 'emg') osc.frequency.linearRampToValueAtTime(spec[0] * 0.6, t + spec[1]);
+    if (kind === 'alert') {                       // a two-note warble, not a beep
+      osc.frequency.setValueAtTime(spec[0], t + spec[1] * 0.45);
+      osc.frequency.setValueAtTime(spec[0] * 0.75, t + spec[1] * 0.5);
+    }
     gain.gain.setValueAtTime(0.0001, t);
     gain.gain.exponentialRampToValueAtTime(0.09, t + 0.012);
     gain.gain.exponentialRampToValueAtTime(0.0001, t + spec[1]);
@@ -5579,8 +6028,15 @@ function refreshStripNode(n, ac) {
   else if (ac.navMode === 'hold')  target = 'HOLD ' + ac.hold.fix;
   else if (ac.viaProcedure)        target = 'VIA ' + ac.viaProcedure;
   else if (ac.navMode === 'fix')   target = '→ ' + (ac.route[ac.routeIndex] || '?');
-  else if (ac.phase === 'takeoff') target = 'RWY ' + ac.departureRwy;
-  else if (ac.phase === 'rollout') target = 'LANDED';
+  else if (ac.phase === 'stand')     target = 'STAND';
+  else if (ac.phase === 'pushback')  target = 'PUSHBACK';
+  else if (ac.phase === 'taxi')      target = 'TAXI';
+  else if (ac.phase === 'holdShort') target = 'HOLD SHORT ' + ac.departureRwy;
+  else if (ac.phase === 'lineup')    target = 'LINED UP ' + ac.departureRwy;
+  else if (ac.phase === 'takeoff')   target = 'RWY ' + ac.departureRwy;
+  else if (ac.phase === 'rollout')   target = 'LANDING ROLL';
+  else if (ac.phase === 'vacating')  target = 'VACATING';
+  else if (ac.phase === 'crossing')  target = 'HOLD SHORT ' + ac.crossingRwy;
   else if (ac.phase === 'missed')  target = 'MISSED APP';
   else target = 'HDG ' + fmtHdg(ac.assignedHdg);
 
@@ -5588,6 +6044,10 @@ function refreshStripNode(n, ac) {
   if (ac.emergency === 'fuel')  { note = 'FUEL ' + fmtMMSS(ac.emgDeadline - state.simTime); noteCls = 'bad'; }
   else if (ac.emergency)        { note = ac.emergency.toUpperCase(); noteCls = 'bad'; }
   else if (ac.wxRequest)        { note = 'WX REQ ' + ac.wxRequest.side; noteCls = 'warn'; }
+  else if (ac.phase === 'stand' && ac.askedPushback) { note = 'PUSH?'; noteCls = 'warn'; }
+  else if (ac.phase === 'holdShort') { note = 'NO.' + queuePosition(ac); noteCls = 'warn'; }
+  else if (ac.phase === 'lineup')    { note = 'ON RWY'; noteCls = 'bad'; }
+  else if (ac.phase === 'crossing')  { note = 'CROSS?'; noteCls = 'warn'; }
   else if (ac.needsFuelDump && !ac.dumping) { note = 'DUMP?'; noteCls = 'warn'; }
   else if (ac.dumping)          { note = 'DUMPING'; noteCls = 'warn'; }
   else if (ac.pendingQuery)     { note = 'SAY AGAIN'; noteCls = 'warn'; }
@@ -6133,7 +6593,7 @@ function startScenario(seedText, scenarioKey, keepRate) {
   $('btnCpa').classList.remove('on');
   toolReadout('');
   updateStrips(true); updateSidePanel(); updateScore(); updateOverlays();
-  renderSectorTab(); renderAnalysis();
+  renderSectorTab(); renderAnalysis(); renderCampaign();
 }
 
 function endSession(reason) {
@@ -6184,6 +6644,12 @@ function endSession(reason) {
         (t.emergency ? '  [' + t.emergency + ']' : '') + '</div>').join('')
     : '<div class="m-sys">No aircraft completed.</div>';
 
+  const verdict = finishCampaignStage(score);
+  if (verdict) {
+    const st = campaignStage(state.campaign.results.length ? state.campaign.stage : 0);
+    $('sumSub').textContent += '  ·  CAMPAIGN: ' + (verdict.pass ? 'PASSED' : 'NOT PASSED');
+  }
+
   const eff = efficiencyStats();
   $('sumEff').innerHTML = [
     ['Track miles flown', eff.flown.toFixed(0) + ' NM'],
@@ -6194,7 +6660,10 @@ function endSession(reason) {
     ['Delivery error on final', eff.delivery ? fmtMMSS(eff.delivery) : '-'],
     ['Commands issued', String(state.workload.length)],
     ['Sequence plan honoured', sequenceAccuracy()]
-  ].map(r => '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td></tr>').join('');
+  ].concat(verdict ? verdict.lines.map(l => ['Stage requirement', l]) : [])
+   .concat(verdict ? [['Controller rating', ratingLabel(state.campaign.rating) +
+                       ' (' + state.campaign.rating + ')']] : [])
+   .map(r => '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td></tr>').join('');
 
   $('summary').classList.remove('hidden');
   if (firstTime) log('sys', '=== SESSION ENDED: ' + reason + ' ===');
@@ -6233,7 +6702,11 @@ el.rate.addEventListener('input', () => {
   el.rateVal.textContent = state.trafficRate + '/hr';
   updateOverlays();
 });
-el.scenario.addEventListener('change', () => startScenario(el.seed.value, el.scenario.value, false));
+el.scenario.addEventListener('change', () => {
+  state.campaign.active = false;
+  $('ratingBadge').textContent = '';
+  startScenario(el.seed.value, el.scenario.value, false);
+});
 $('btnSeed').addEventListener('click', () => startScenario(el.seed.value, el.scenario.value, true));
 $('btnRandSeed').addEventListener('click', () => {
   el.seed.value = randomSeedText();
@@ -6510,7 +6983,7 @@ document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () =>
   const id = b.getAttribute('data-tab');
   document.querySelectorAll('.tabpane').forEach(x => x.classList.toggle('on', x.id === id));
   if (id === 'tabAnalysis') renderAnalysis();
-  if (id === 'tabSector') renderSectorTab();
+  if (id === 'tabSector') { renderSectorTab(); renderGroundPanel(); }
 }));
 function showTab(id) {
   const b = Array.from(document.querySelectorAll('.tab')).find(x => x.getAttribute('data-tab') === id);
@@ -6628,6 +7101,52 @@ bindChk('chkAuto',         v => {
 bindSel('selRadar',   v => { state.radarMode = v; state.radarSweepT = 0; });
 bindSel('selHotSeat', v => { state.hotSeat = v; updateStrips(true); });
 
+bindChk('chkGround', v => {
+  state.groundOps = v;
+  log('sys', v ? 'Ground and tower operations on: departures start at a stand and need '
+               + 'pushback, taxi and a takeoff clearance.'
+               : 'Ground operations off: departures line up on the runway and roll when cleared.');
+});
+$('btnPb').addEventListener('click',   () => issue('PB'));
+$('btnLuaw').addEventListener('click', () => issue('LUAW'));
+$('btnTo').addEventListener('click',   () => issue('TO'));
+$('btnXr').addEventListener('click',   () => issue('XR'));
+
+/** The aerodrome picture: who is where, and the queue for each runway. */
+function renderGroundPanel() {
+  if (!state.groundOps) {
+    $('groundList').textContent = 'Ground operations are off.';
+    return;
+  }
+  const on = state.aircraft.filter(a => a.alive && onGround(a));
+  if (!on.length) { $('groundList').textContent = 'Nothing on the aerodrome.'; return; }
+  const label = a => {
+    switch (a.phase) {
+      case 'stand':     return 'at the stand, awaiting pushback';
+      case 'pushback':  return 'pushing back';
+      case 'taxi':      return 'taxiing to ' + (a.ground ? a.ground.why : 'the apron');
+      case 'holdShort': return 'holding short ' + a.departureRwy + ', number ' + queuePosition(a);
+      case 'lineup':    return 'lined up ' + a.departureRwy;
+      case 'takeoff':   return 'departing ' + a.departureRwy;
+      case 'rollout':   return 'landing roll ' + a.rolloutRwy;
+      case 'vacating':  return 'vacating ' + a.rolloutRwy;
+      case 'crossing':  return 'holding short of ' + a.crossingRwy + ', wants to cross';
+      default:          return a.phase;
+    }
+  };
+  const cls = a => (a.phase === 'holdShort' && queuePosition(a) === 1) || a.phase === 'crossing'
+    ? 'warn' : (a.phase === 'lineup' ? 'bad' : '');
+  $('groundList').innerHTML = on
+    .sort((a, b) => GROUND_PHASES.indexOf(b.phase) - GROUND_PHASES.indexOf(a.phase))
+    .map(a => '<div style="display:flex;justify-content:space-between;gap:6px">' +
+      '<span class="' + cls(a) + '" data-gid="' + a.id + '" style="cursor:pointer">' +
+      a.callsign + '</span><span class="m-sys">' + label(a) + '</span></div>').join('');
+}
+$('groundList').addEventListener('click', ev => {
+  const id = ev.target.getAttribute && ev.target.getAttribute('data-gid');
+  if (id) selectAircraft(parseInt(id, 10), false);
+});
+
 $('btnMit').addEventListener('click', () => {
   const fix = $('selMitFix').value;
   const nm = parseInt($('inMit').value, 10);
@@ -6671,6 +7190,32 @@ $('btnScriptCode').addEventListener('click', () => {
   log('sys', 'Session code: ' + code.split('\n').join(' | '));
 });
 
+/**
+ * A one-string session code: everything needed to reproduce this session,
+ * short enough to paste into a chat window.
+ */
+function sessionCodeCompact() {
+  return ['S24', state.seedText, state.scenario, state.trafficRate,
+          fmtHdg(state.wind.dirFrom) + '-' + Math.round(state.wind.speed),
+          state.activeArr, Math.round(state.metar.targetCeiling),
+          state.metar.targetVis.toFixed(1), state.cells.length].join('.');
+}
+
+/** Parse a one-string code back into script lines. Returns null if it is not one. */
+function parseSessionCodeCompact(text) {
+  const t = String(text || '').trim();
+  if (!/^S24\./i.test(t)) return null;
+  const p = t.split('.');
+  /* the visibility carries its own decimal point, so rejoin that pair */
+  if (p.length === 10) { p[8] = p[8] + '.' + p[9]; p.length = 9; }
+  if (p.length !== 9) return null;
+  const wind = String(p[5] || '').split('-');
+  const out = ['seed ' + p[1], 'scenario ' + p[2], 'rate ' + p[3]];
+  if (wind.length === 2) out.push('wind ' + wind[0] + '/' + wind[1]);
+  out.push('runway ' + p[6], 'weather ' + p[7] + ' ' + p[8], 'cells ' + (p[4] || 0));
+  return out.join('\n');
+}
+
 /** A short shareable description of the current session. */
 function sessionCode() {
   return ['seed ' + state.seedText,
@@ -6679,7 +7224,8 @@ function sessionCode() {
           'wind ' + fmtHdg(state.wind.dirFrom) + '/' + Math.round(state.wind.speed),
           'runway ' + state.activeArr,
           'weather ' + Math.round(state.metar.targetCeiling) + ' ' + state.metar.targetVis.toFixed(1),
-          'cells ' + state.cells.length].join('\n');
+          'cells ' + state.cells.length,
+          '# one-line code: ' + sessionCodeCompact()].join('\n');
 }
 
 function renderSectorTab() {
@@ -7041,6 +7587,100 @@ function stripDrop(ev) {
     document.querySelectorAll('.strip.over,.strip.drag').forEach(x => x.classList.remove('over', 'drag'));
     dragStripId = null;
   });
+});
+
+/* ============================================================================
+ * SECTION 12d — CAMPAIGN
+ * ========================================================================== */
+
+function campaignStage(i) { return CAMPAIGN[clamp(i, 0, CAMPAIGN.length - 1)]; }
+
+/** Did this session meet the stage's pass mark? Returns { pass, lines }. */
+function judgeStage(stage) {
+  const s = state.score;
+  const cleared = s.landings + s.handoffs;
+  const got = { landings:s.landings, cleared, violations:s.violations + s.wakeViolations,
+                crashes:s.crashes, diversions:s.diversions, wxIgnored:s.wxIgnored };
+  const lines = [];
+  let pass = true;
+  for (const k in stage.need) {
+    const want = stage.need[k];
+    /* landings and cleared are minimums; everything else is a ceiling. */
+    const isMin = (k === 'landings' || k === 'cleared');
+    const ok = isMin ? got[k] >= want : got[k] <= want;
+    if (!ok) pass = false;
+    lines.push((ok ? 'PASS  ' : 'FAIL  ') + k + ': ' + got[k] +
+               (isMin ? ' (need ' + want + ' or more)' : ' (limit ' + want + ')'));
+  }
+  return { pass, lines, cleared };
+}
+
+function startCampaignStage(i) {
+  const stage = campaignStage(i);
+  state.campaign.active = true;
+  state.campaign.stage = clamp(i, 0, CAMPAIGN.length - 1);
+  state.sessionLength = stage.mins * 60;
+  el.duration.value = String(state.sessionLength);
+  if (!SCENARIOS[stage.scenario]) return;
+  startScenario(state.seedText + '-S' + stage.id, stage.scenario, true);
+  state.trafficRate = stage.rate;
+  el.rate.value = stage.rate;
+  el.rateVal.textContent = stage.rate + '/hr';
+  log('sys', 'CAMPAIGN STAGE ' + stage.id + ' — ' + stage.name + ' · ' +
+             stage.mins + ' minutes · ' + stage.note);
+  log('sys', 'Pass mark: ' + Object.keys(stage.need).map(k => k + ' ' + stage.need[k]).join(', '));
+  renderCampaign();
+}
+
+/** Called from endSession when a campaign stage finishes. */
+function finishCampaignStage(score) {
+  const c = state.campaign;
+  if (!c.active) return null;
+  const stage = campaignStage(c.stage);
+  const verdict = judgeStage(stage);
+  const earned = Math.max(0, score);
+  if (verdict.pass) {
+    c.rating += earned;
+    c.results[c.stage] = { pass:true, score:earned };
+    if (c.stage < CAMPAIGN.length - 1) c.stage++;
+    log('ok', 'STAGE PASSED — ' + earned + ' points. Rating: ' + ratingLabel(c.rating) +
+               ' (' + c.rating + ').');
+  } else {
+    c.results[c.stage] = { pass:false, score:earned };
+    log('err', 'STAGE NOT PASSED — ' + verdict.lines.filter(l => l.startsWith('FAIL')).join('; '));
+  }
+  renderCampaign();
+  return verdict;
+}
+
+function renderCampaign() {
+  const c = state.campaign;
+  $('ratingLbl').textContent = ratingLabel(c.rating) + ' · ' + c.rating;
+  $('ratingBadge').textContent = c.active
+    ? 'STAGE ' + campaignStage(c.stage).id + ' · ' + ratingLabel(c.rating) : '';
+  $('campaignList').innerHTML = CAMPAIGN.map((st, i) => {
+    const r = c.results[i];
+    const state_ = r ? (r.pass ? '<span class="pass">passed ' + r.score + '</span>'
+                               : '<span class="fail">failed</span>')
+                     : (i === c.stage ? '<span class="advline">current</span>'
+                                      : (i < c.stage ? '' : '<span class="m-sys">locked</span>'));
+    return '<div style="display:flex;justify-content:space-between;gap:6px' +
+           (i === c.stage ? ';color:#e6f2f7' : '') + '">' +
+           '<span>' + st.id + '. ' + st.name + ' <span class="m-sys">(' + st.scenario + ', ' +
+           st.rate + '/hr, ' + st.mins + 'm)</span></span>' + '<span>' + state_ + '</span></div>';
+  }).join('');
+}
+
+$('btnCampStart').addEventListener('click', () => startCampaignStage(state.campaign.stage));
+$('btnCampNext').addEventListener('click', () => {
+  if (state.campaign.stage >= CAMPAIGN.length - 1) { log('sys', 'That is the last stage.'); return; }
+  startCampaignStage(state.campaign.stage + 1);
+});
+$('btnCampReset').addEventListener('click', () => {
+  state.campaign = { active:false, stage:0, rating:0, results:[] };
+  $('ratingBadge').textContent = '';
+  log('sys', 'Campaign ladder reset.');
+  renderCampaign();
 });
 
 /* ============================================================================
@@ -7929,6 +8569,79 @@ function runSelfTests() {
     return true;
   }));
 
+  check('a departure walks the whole ground sequence', () => withSandbox(() => {
+    state.groundOps = true;
+    const ac = commitSpawn(spawnDepartureNow('GNDTST'));
+    if (!ac) return 'no departure spawned';
+    if (ac.phase !== 'stand') return 'did not start at a stand: ' + ac.phase;
+    for (let i = 0; i < 60 * 30 && !ac.askedPushback; i++) stepSim(DT);
+    if (!ac.askedPushback) return 'never requested pushback';
+    if (!executeCommandLine('GNDTST PB')) return 'pushback was refused';
+    for (let i = 0; i < 60 * 60 * 6 && ac.phase !== 'holdShort'; i++) stepSim(DT);
+    if (ac.phase !== 'holdShort') return 'never reached the holding point (' + ac.phase + ')';
+    if (queuePosition(ac) !== 1) return 'queue position is ' + queuePosition(ac) + ', expected 1';
+    if (!executeCommandLine('GNDTST LUAW')) return 'line up was refused';
+    for (let i = 0; i < 60 * 120 && !ac.linedUp; i++) stepSim(DT);
+    if (!ac.linedUp) return 'never lined up';
+    if (runwayIsFree(getRunway(ac.departureRwy))) return 'a lined-up aircraft left the runway free';
+    if (!executeCommandLine('GNDTST TO')) return 'takeoff was refused';
+    for (let i = 0; i < 60 * 60 * 4 && ac.phase !== 'enroute'; i++) stepSim(DT);
+    if (ac.phase !== 'enroute') return 'never got airborne (' + ac.phase + ')';
+    return true;
+  }));
+
+  check('the runway cannot hold two aircraft at once', () => withSandbox(() => {
+    state.groundOps = true;
+    const rwy = getRunway('27');
+    const mk = cs => {
+      const a = commitSpawn(spawnDepartureNow(cs));
+      if (!a) return null;
+      a.departureRwy = '27';
+      a.phase = 'holdShort';
+      a.readyAt = state.simTime + (cs === 'RW0002' ? 1 : 0);
+      const hp = holdingPoint(rwy); a.x = hp.x; a.y = hp.y;
+      return a;
+    };
+    const a = mk('RW0001'), b = mk('RW0002');
+    if (!a || !b) return 'could not place two departures';
+    if (!cmdLineUp(a).ok) return 'the first could not line up';
+    cmdLineUp(a).effect();
+    for (let i = 0; i < 60 * 120; i++) stepSim(DT);
+    if (cmdLineUp(b).ok)  return 'a second aircraft was allowed onto an occupied runway';
+    if (cmdTakeoff(b).ok) return 'a second aircraft was cleared for takeoff on an occupied runway';
+    /* ...and an aircraft on short final also stops a departure */
+    const arr = testAircraft({ x: rwy.thr.x - rwy.u.x * 2, y: rwy.thr.y - rwy.u.y * 2,
+                               alt: glideslopeAlt(2), hdg: rwy.hdg, ias:150, tag:'sf' });
+    arr.kind = 'arrival'; arr.navMode = 'approach';
+    arr.approach = { rwy:'27', locCaptured:true, gsCaptured:true, gateChecked:true, daChecked:false };
+    state.aircraft.push(arr);
+    a.phase = 'holdShort';
+    const r = cmdTakeoff(a);
+    if (r.ok) return 'cleared a departure with traffic on a 2 NM final';
+    if (!/short final/.test(r.msg)) return 'the refusal did not mention the final: ' + r.msg;
+    return true;
+  }));
+
+  check('the campaign judges a stage against its pass mark', () => withSandbox(() => {
+    const stage = { id:99, name:'test', scenario:'quiet', rate:10, mins:5,
+                    need:{ landings:2, violations:1 } };
+    state.score.landings = 3; state.score.violations = 0; state.score.wakeViolations = 0;
+    let v = judgeStage(stage);
+    if (!v.pass) return 'a clean session failed its own pass mark';
+    state.score.violations = 2;
+    v = judgeStage(stage);
+    if (v.pass) return 'too many violations still passed';
+    state.score.violations = 0; state.score.landings = 1;
+    v = judgeStage(stage);
+    if (v.pass) return 'too few landings still passed';
+    if (!v.lines.some(l => l.indexOf('FAIL') === 0)) return 'no failing line was reported';
+    if (ratingLabel(0) === ratingLabel(2000)) return 'the rating never changes';
+    for (let i = 1; i < RATINGS.length; i++) {
+      if (RATINGS[i].at <= RATINGS[i - 1].at) return 'rating thresholds are not increasing';
+    }
+    return true;
+  }));
+
   check('the test sandbox leaks nothing into the live session', () => {
     const before = {};
     for (const k in state) before[k] = state[k];
@@ -8019,7 +8732,7 @@ function uiTick(dtReal) {
   if (uiSlowAccum >= 1.0) {
     uiSlowAccum = 0;
     if ($('tabAnalysis').classList.contains('on')) renderAnalysis();
-    if ($('tabSector').classList.contains('on')) renderSectorTab();
+    if ($('tabSector').classList.contains('on')) { renderSectorTab(); renderGroundPanel(); }
   }
 }
 
