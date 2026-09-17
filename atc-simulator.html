@@ -189,8 +189,9 @@ li{margin:2px 0}
 /* ---------- tabs ---------- */
 .tabs{display:flex;background:#0e1820;border-bottom:1px solid var(--line);flex:0 0 auto}
 .tabs button{
-  flex:1;border:none;border-radius:0;background:transparent;color:var(--txt-dim);
-  padding:5px 2px;font-size:10px;letter-spacing:.06em;border-bottom:2px solid transparent;
+  flex:1 1 0;min-width:0;border:none;border-radius:0;background:transparent;
+  color:var(--txt-dim);padding:5px 1px;font-size:9px;letter-spacing:0;
+  border-bottom:2px solid transparent;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
 .tabs button.on{color:var(--accent);border-bottom-color:var(--accent);background:#101c24}
 .tabpane{display:none;flex:1 1 auto;min-height:0;overflow-y:auto}
@@ -384,6 +385,7 @@ canvas.spark{display:block;width:100%;height:46px;background:#070f14;border:1px 
       <button class="tab" data-tab="tabDisplay">DISPLAY</button>
       <button class="tab" data-tab="tabSector">SECTOR</button>
       <button class="tab" data-tab="tabAnalysis">ANALYSIS</button>
+      <button class="tab" data-tab="tabAirspace">AIRSPACE</button>
     </div>
 
     <!-- ===== CONTROL ===== -->
@@ -670,6 +672,60 @@ canvas.spark{display:block;width:100%;height:46px;background:#070f14;border:1px 
       </div>
     </div>
 
+    <!-- ===== AIRSPACE ===== -->
+    <div class="tabpane" id="tabAirspace">
+      <div class="pblock">
+        <div class="lbl">Fields &amp; positions</div>
+        <div class="row">
+          <label class="mini"><input type="checkbox" id="chkSecondApt"> Second airport (KRDG)</label>
+        </div>
+        <div class="row">
+          <label class="mini"><input type="checkbox" id="chkSplit"> Split the sector vertically</label>
+        </div>
+        <div class="row"><span class="k">Split at</span>
+          <input type="number" id="inSplitAlt" step="10" value="200" style="width:56px"
+                 title="Flight level of the boundary between the low and high sectors">
+          <span class="k">You work</span>
+          <select id="selSectorPos">
+            <option value="low">Low sector</option>
+            <option value="high">High sector</option>
+          </select>
+        </div>
+        <div id="splitInfo" class="mini"></div>
+      </div>
+      <div class="pblock">
+        <div class="lbl">Airspace editor</div>
+        <div class="row">
+          <label class="mini"><input type="checkbox" id="chkEdit"> Edit on the scope</label>
+          <select id="selEditTool">
+            <option value="move">Move</option>
+            <option value="fix">Add fix</option>
+            <option value="boundary">Add boundary point</option>
+            <option value="delete">Delete</option>
+          </select>
+        </div>
+        <div id="editHelp" class="mini"></div>
+      </div>
+      <div class="pblock">
+        <div class="lbl">Airspace definition</div>
+        <textarea id="worldBox" rows="12" spellcheck="false"
+          style="width:100%;font-family:var(--mono);font-size:10px;resize:vertical"
+          placeholder="sector -30,28 6,32 ...&#10;airport KSIM 0 0 640 primary&#10;runway KSIM 09/27 90 0 0.6 1.05&#10;fix TANGO -8 28 edge"></textarea>
+        <div class="grid3" style="margin-top:4px">
+          <button id="btnWorldExport">EXPORT</button>
+          <button id="btnWorldLoad">LOAD</button>
+          <button id="btnWorldReset">RESET</button>
+        </div>
+        <div id="worldMsg" class="mini"></div>
+        <div class="mini" style="margin-top:6px">
+          Real-world fields: add <code>origin &lt;lat&gt; &lt;lon&gt;</code> then use
+          <code>fixll NAME &lt;lat&gt; &lt;lon&gt;</code> and
+          <code>airportll ID &lt;lat&gt; &lt;lon&gt; &lt;elev&gt;</code>. Everything is converted
+          to nautical miles from the origin.
+        </div>
+      </div>
+    </div>
+
     <div class="sec-title"><span>Session</span><span id="sessClock"></span></div>
     <div class="pblock">
       <div class="score" id="scoreBox"></div>
@@ -741,6 +797,20 @@ canvas.spark{display:block;width:100%;height:46px;background:#070f14;border:1px 
       <tr><td>UNDO</td><td>take back the last clearance (also Ctrl+Z)</td></tr>
     </table>
 
+    <h3>On the ground</h3>
+    <p>Departures start at a stand. They need pushback, then they taxi themselves to the holding
+       point and queue. You decide the order off the runway.</p>
+    <table class="cmds">
+      <tr><td>PB</td><td>pushback and start approved</td></tr>
+      <tr><td>LUAW</td><td>line up runway and wait</td></tr>
+      <tr><td>TO</td><td>cleared for takeoff</td></tr>
+      <tr><td>HS</td><td>vacate and hold short again</td></tr>
+      <tr><td>XR</td><td>approve a landing aircraft's runway crossing</td></tr>
+    </table>
+    <p>A takeoff clearance is refused if the runway is occupied, if something is inside 4 NM on
+       final to it, or during a ground stop. Zoom in past 14 px/NM to see the aerodrome; the
+       queue is always listed on the SECTOR tab.</p>
+
     <h3>Sector instructions (not addressed to an aircraft)</h3>
     <table class="cmds">
       <tr><td>ACC 3 &middot; CTR 3 120 &middot; REJ 3</td><td>accept, counter-offer or refuse coordination offer #3</td></tr>
@@ -774,15 +844,38 @@ canvas.spark{display:block;width:100%;height:46px;background:#070f14;border:1px 
           <code>1 2 4 8</code> rate.</li>
     </ul>
 
-    <h3>The four tabs</h3>
+    <h3>The five tabs</h3>
     <ul>
       <li><b>CONTROL</b> &mdash; the selected aircraft and every clearance as a button.</li>
       <li><b>DISPLAY</b> &mdash; declutter, colour modes, altitude filter, halos, MSA grid, vector length,
           scope rotation, brightness, range/bearing and CPA tools, vertical profile, PNG export.</li>
-      <li><b>SECTOR</b> &mdash; the briefing, coordination offers, flow restrictions, runway changes,
-          realism switches, the AI controller, hot-seat positions and the scenario script.</li>
+      <li><b>SECTOR</b> &mdash; the campaign ladder, the briefing, the aerodrome and its queue,
+          coordination offers, flow restrictions, runway changes, realism switches,
+          the AI controller, hot-seat positions and the scenario script.</li>
       <li><b>ANALYSIS</b> &mdash; live advisories with suggested resolutions, workload, a conflict heat map,
           route efficiency and the fuel cost of your vectoring.</li>
+      <li><b>AIRSPACE</b> &mdash; the second airport, the vertical sector split, the scope editor,
+          and the airspace definition you can export, edit and load back.</li>
+    </ul>
+
+    <h3>Campaign</h3>
+    <p>Ten shifts that get progressively harder, each with its own pass mark. Passing earns points
+       toward a controller rating that carries across the run. Start it from the SECTOR tab.</p>
+
+    <h3>A bigger sector</h3>
+    <ul>
+      <li><b>Second airport.</b> KRDG opens 19 NM north-west. About a quarter of the arrivals go
+          there, and its approaches cut straight across your north-west flow. It has no published
+          procedures &mdash; you vector every one of them.</li>
+      <li><b>Vertical split.</b> The sector can be divided into a low and a high position. You work
+          one; anything crossing the split has to be transferred with <code>HO</code>, in either
+          direction, and leaving it too long is a bust. The other position's traffic stays on your
+          screen, greyed out.</li>
+      <li><b>Airspace editor.</b> Switch editing on and drag fixes, the airports and the boundary
+          about on the scope. <b>EXPORT</b> writes the whole airspace out as text; edit it and press
+          <b>LOAD</b>. A definition that will not run is refused and the old one stays.</li>
+      <li><b>Real fields.</b> Give an <code>origin</code> latitude and longitude, then place things
+          with <code>fixll</code> and <code>airportll</code> in degrees.</li>
     </ul>
 
     <h3>Replay</h3>
@@ -1203,10 +1296,32 @@ function weightedPick(rng, items) {
  * reference point (0,0): +x east, +y north.
  * ========================================================================== */
 
-const FIELD = { name:'KSIM', x:0, y:0, elev:640 };
+/**
+ * The airports in the sector. The first is the primary — the one the published
+ * procedures and the ground layer serve. Additional fields are radar-only:
+ * you vector their arrivals onto an approach and their flows interfere with
+ * the primary's, which is the whole point of having them.
+ */
+let AIRPORTS = [
+  { id:'KSIM', name:'KSIM', x:0,   y:0,  elev:640, primary:true },
+  { id:'KRDG', name:'KRDG', x:-19, y:15, elev:700, primary:false }
+];
+let FIELD = AIRPORTS[0];
+
+function airportOf(rwy) {
+  if (!rwy) return FIELD;
+  return AIRPORTS.find(a => a.id === rwy.apt) || FIELD;
+}
+/** Ground elevation at a runway. */
+function rwyElev(rwy) { return airportOf(rwy).elev; }
+function getAirport(id) { return AIRPORTS.find(a => a.id === String(id).toUpperCase()) || null; }
+/** Airports the controller is currently working. */
+function activeAirports() {
+  return state.secondAirport ? AIRPORTS : AIRPORTS.filter(a => a.primary);
+}
 
 /** Sector boundary, clockwise from the north-west corner. */
-const SECTOR = [
+let SECTOR = [
   { x:-30, y: 28 }, { x:  6, y: 32 }, { x: 30, y: 22 }, { x: 32, y:-10 },
   { x: 12, y:-30 }, { x:-20, y:-30 }, { x:-32, y:-12 }, { x:-32, y: 12 }
 ];
@@ -1215,7 +1330,7 @@ const SECTOR = [
  * Named fixes. `edge` fixes sit near the boundary and are used for entries and
  * exits; the rest are internal.
  */
-const FIXES = [
+let FIXES = [
   { name:'TANGO',  x: -8, y: 28, edge:true  },
   { name:'KILO',   x: 20, y: 24, edge:true  },
   { name:'ROMEO',  x: 28, y:  8, edge:true  },
@@ -1234,8 +1349,27 @@ const FIXES = [
   { name:'PIPER',  x:-13, y: -7, edge:false, gate:true }
 ];
 
+/** The landing runway for an arrival, which depends on where it is going. */
+function arrivalRunwayFor(ac) {
+  if (ac && ac.dest && ac.dest !== FIELD.id) return getRunway(state.activeArr2);
+  return getRunway(state.activeArr);
+}
+
+/** Pick the into-wind runway for a field from the runways it has. */
+function preferredRunwayFor(aptId) {
+  const opts = RUNWAYS.filter(r => r.apt === aptId);
+  if (!opts.length) return null;
+  const w = windAt(FIELD.elev + 1000);
+  let best = opts[0], bestHead = -1e9;
+  for (const r of opts) {
+    const head = Math.cos(angleDiff(r.hdg, normalizeHeading(w.dirFrom)) * DEG2RAD) * w.speed;
+    if (head > bestHead) { bestHead = head; best = r; }
+  }
+  return best;
+}
+
 /** Which pair of gates feeds a given landing runway: [north, south]. */
-const RUNWAY_GATES = { '27':['RIVET','CANDY'], '32':['RIVET','CANDY'],
+let RUNWAY_GATES = { '27':['RIVET','CANDY'], '32':['RIVET','CANDY'],
                        '09':['TUSK','PIPER'],  '14':['TUSK','PIPER'] };
 function gatesFor(rwyId) { return RUNWAY_GATES[rwyId] || RUNWAY_GATES['27']; }
 
@@ -1244,7 +1378,7 @@ function gatesFor(rwyId) { return RUNWAY_GATES[rwyId] || RUNWAY_GATES['27']; }
  * "Descend via" / "climb via" hands the whole vertical and speed profile to the
  * crew; you keep the lateral picture and the sequencing.
  * ------------------------------------------------------------------------ */
-const PROCEDURES = [
+let PROCEDURES = [
   /* ---- arrivals ---- */
   { id:'RIDGE2', kind:'star', entry:'TANGO',
     legs:[{fix:'ALPHA', altMax:11000, spd:250}], gateSide:'north' },
@@ -1342,7 +1476,7 @@ function nextRestriction(ac, kind) {
 }
 
 /** Airways — polylines through the fix network, drawn dim on the scope. */
-const AIRWAYS = [
+let AIRWAYS = [
   { id:'V21', pts:['MIKE','ALPHA','DELTA','WHISKY'] },
   { id:'V44', pts:['TANGO','BRAVO','ROMEO']         },
   { id:'V07', pts:['ALPHA','BRAVO']                 },
@@ -1355,18 +1489,22 @@ const AIRWAYS = [
  * occupancy is shared between them. 09/27 and 14/32 do not intersect, so their
  * occupancy is independent.
  */
-const RUNWAYS = (function () {
-  function build(id, hdg, cx, cy, halfLen, phys) {
+let RUNWAYS = (function () {
+  function build(id, hdg, cx, cy, halfLen, phys, apt) {
     const u   = vecFromHeading(hdg, 1);                 // landing direction
     const thr = { x: cx - u.x * halfLen, y: cy - u.y * halfLen };
     const end = { x: cx + u.x * halfLen, y: cy + u.y * halfLen };
-    return { id, hdg, phys, thr, end, u, right:{ x:u.y, y:-u.x }, len:halfLen*2 };
+    return { id, hdg, phys, apt: apt || 'KSIM', thr, end, u,
+             right:{ x:u.y, y:-u.x }, len:halfLen*2 };
   }
   return [
-    build('09', 90,  0.0,  0.60, 1.05, 'R1'),
-    build('27', 270, 0.0,  0.60, 1.05, 'R1'),
-    build('14', 140, -0.20,-0.30, 0.90, 'R2'),
-    build('32', 320, -0.20,-0.30, 0.90, 'R2')
+    build('09', 90,  0.0,  0.60, 1.05, 'R1', 'KSIM'),
+    build('27', 270, 0.0,  0.60, 1.05, 'R1', 'KSIM'),
+    build('14', 140, -0.20,-0.30, 0.90, 'R2', 'KSIM'),
+    build('32', 320, -0.20,-0.30, 0.90, 'R2', 'KSIM'),
+    /* the satellite field, one strip, radar approaches only */
+    build('05', 50,  -19.0, 15.0, 0.75, 'R3', 'KRDG'),
+    build('23', 230, -19.0, 15.0, 0.75, 'R3', 'KRDG')
   ];
 })();
 
@@ -1376,7 +1514,7 @@ const RUNWAYS = (function () {
  * departure queue, hold someone short, line them up, and have a landing
  * aircraft ask to cross the other runway on its way in.
  * ------------------------------------------------------------------------ */
-const APRON = { x: -0.15, y: 1.75 };
+let APRON = { x: -0.15, y: 1.75 };
 const TAXI_KT = 22;            // ground speed while taxiing
 const PUSHBACK_S = 45;         // how long a pushback takes
 
@@ -1399,6 +1537,7 @@ function exitPoint(rwy) {
  */
 function crossingRunwayFor(fromPt, exceptPhys) {
   for (const r of RUNWAYS) {
+    if (r.apt !== FIELD.id) continue;          // only the primary has a ground layer
     if (r.phys === exceptPhys) continue;
     if (r.id !== '27' && r.id !== '14') continue;          // one entry per strip
     const d = distToSegment(APRON.x, APRON.y, r.thr.x, r.thr.y, r.end.x, r.end.y);
@@ -1441,7 +1580,7 @@ function getFix(name) {
 }
 
 /** Arrival feeds: entry fix -> the one intermediate fix on its arrival route. */
-const ARRIVAL_ROUTES = {
+let ARRIVAL_ROUTES = {
   TANGO:  ['TANGO','ALPHA'],
   MIKE:   ['MIKE','ALPHA'],
   KILO:   ['KILO','BRAVO'],
@@ -1449,11 +1588,11 @@ const ARRIVAL_ROUTES = {
   SIERRA: ['SIERRA','CHARLI'],
   WHISKY: ['WHISKY','DELTA']
 };
-const ARRIVAL_ENTRIES  = Object.keys(ARRIVAL_ROUTES);
-const DEPARTURE_EXITS  = ['TANGO','KILO','ROMEO','SIERRA','WHISKY','MIKE'];
+let ARRIVAL_ENTRIES  = Object.keys(ARRIVAL_ROUTES);
+let DEPARTURE_EXITS  = ['TANGO','KILO','ROMEO','SIERRA','WHISKY','MIKE'];
 
 /** Overflight routes: in at one edge, out at another, via internal fixes. */
-const OVERFLIGHT_ROUTES = [
+let OVERFLIGHT_ROUTES = [
   ['MIKE','ALPHA','DELTA','WHISKY'], ['WHISKY','DELTA','ALPHA','MIKE'],
   ['TANGO','BRAVO','ROMEO'],         ['ROMEO','BRAVO','TANGO'],
   ['SIERRA','CHARLI','BRAVO','KILO'],['KILO','BRAVO','CHARLI','SIERRA'],
@@ -1462,8 +1601,8 @@ const OVERFLIGHT_ROUTES = [
 ];
 
 /** Glideslope altitude at a given along-track distance from the threshold. */
-function glideslopeAlt(distNm) {
-  return FIELD.elev + GS_FT_PER_NM * Math.max(0, distNm);
+function glideslopeAlt(distNm, rwy) {
+  return rwyElev(rwy) + GS_FT_PER_NM * Math.max(0, distNm);
 }
 
 /**
@@ -1636,6 +1775,8 @@ const state = {
   lastLanding:{}, deliveryTarget:95, groundStopUntil:0, tailwindT:0,
   metar:{ ceiling:8000, vis:10, shear:false, lvp:false },
   activeArr:'27', activeDep:'27', rwyChange:null,
+  secondAirport:false, activeArr2:'05',
+  split:{ enabled:false, alt:20000 }, sectorPos:'low',
 
   /* scoring */
   score:{ handoffs:0, landings:0, violations:0, goArounds:0, busts:0,
@@ -1653,6 +1794,7 @@ const state = {
   filtLo:0, filtHi:60000, showHalo:false, showMsa:false, showGrid:false,
   highlight:'', profileOpen:false,
   tools:{ mode:null, rbl:null, cpa:[] }, hoverId:null,
+  editor:{ on:false, tool:'move', dragKind:null, dragIdx:-1 },
   logFilterText:'',
   pauseOnConflict:false, pauseOnArrival:false,
   advisor:false, hints:false, autoController:false, hotSeat:'both',
@@ -1734,6 +1876,9 @@ function newAircraft(kind, typeDef, rng) {
 
     /* lifecycle */
     kind,                     // arrival | departure | overflight
+    dest:'KSIM',              // which airport an arrival is going to
+    sectorOwner:'low',        // which vertical sector is working it
+    bandSince:0, vertHandoffDue:false,
     phase:'enroute',          // stand|pushback|taxi|holdShort|lineup|takeoff|rollout|
                               // vacating|crossing|enroute|approach|missed
     ground:null,              // { target:{x,y}, why:'' } while taxiing
@@ -1854,6 +1999,9 @@ function spawnArrivalAt(entryName, altWanted, callsign) {
   if (!flowAllows(entry, altWanted || 0)) return null;   // miles-in-trail restriction
 
   const typeDef = rng.pick(TYPES);
+  /* Roughly one arrival in four goes to the satellite field when it is open. */
+  const sat = AIRPORTS.find(a => !a.primary);
+  const toSat = state.secondAirport && !!sat && rng.chance(0.28);
   const cap = maxEntryAltitude(entry, state.activeArr);
   alt = Number.isFinite(altWanted) ? altWanted
                                    : Math.min(cruiseAltFor(rng, 'arrival', typeDef.c), cap);
@@ -1864,21 +2012,34 @@ function spawnArrivalAt(entryName, altWanted, callsign) {
                   state.usedCallsigns.add(callsign); }
   ac.entryFix = entry;
 
-  const star = starFor(entry);
-  ac.procedure = star ? star.id : null;
-  const legs = procedureLegs(star, state.activeArr);
-  ac.procLegs   = legs;
-  ac.route      = legs.map(l => l.fix);
-  ac.routeIndex = 0;
+  ac.dest = toSat ? sat.id : FIELD.id;
+  if (toSat) {
+    /* No published arrival for the satellite: it routes to the nearest fix on
+       its side and then needs vectors, which is where the two flows meet. */
+    ac.procedure = null;
+    const via = FIXES.filter(f => !f.edge && !f.gate)
+      .sort((a, b) => dist(a.x, a.y, sat.x, sat.y) - dist(b.x, b.y, sat.x, sat.y))[0];
+    ac.route = via ? [via.name] : [];
+    ac.procLegs = ac.route.map(f => ({ fix:f }));
+    ac.routeIndex = 0;
+  } else {
+    const star = starFor(entry);
+    ac.procedure = star ? star.id : null;
+    const legs = procedureLegs(star, state.activeArr);
+    ac.procLegs   = legs;
+    ac.route      = legs.map(l => l.fix);
+    ac.routeIndex = 0;
+  }
 
+  const destApt = toSat ? sat : FIELD;
   ac.x = fix.x; ac.y = fix.y; ac.alt = alt;
   ac.assignedAlt = alt;
   ac.ias = ac.assignedIas = Math.min(ac.perf.cruiseIas, ac.perf.maxIas);
-  ac.navMode = 'fix';
-  const nextFix = getFix(ac.route[0]) || FIELD;
+  ac.navMode = ac.route.length ? 'fix' : 'hdg';
+  const nextFix = getFix(ac.route[0]) || destApt;
   ac.hdg = ac.assignedHdg = bearingTo(ac.x, ac.y, nextFix.x, nextFix.y);
-  ac.idealSeconds = dist(fix.x, fix.y, FIELD.x, FIELD.y) / 300 * 3600 + 260;
-  ac.idealMiles   = dist(fix.x, fix.y, FIELD.x, FIELD.y) + 10;
+  ac.idealSeconds = dist(fix.x, fix.y, destApt.x, destApt.y) / 300 * 3600 + 260;
+  ac.idealMiles   = dist(fix.x, fix.y, destApt.x, destApt.y) + 10;
   ac.fuelMinutes = rng.range(42, 105);               // endurance when it checks in
   return ac;
 }
@@ -1904,8 +2065,19 @@ function spawnDepartureNow(callsign) {
   if (callsign) { state.usedCallsigns.delete(ac.callsign); ac.callsign = callsign;
                   state.usedCallsigns.add(callsign); }
   if (state.groundOps) {
-    ac.x = APRON.x + rng.range(-0.28, 0.28);
-    ac.y = APRON.y + rng.range(-0.18, 0.18);
+    /* Park it on a free stand rather than on top of whoever is already there. */
+    let best = { x:APRON.x, y:APRON.y }, bestGap = -1;
+    for (let k = 0; k < 10; k++) {
+      const cand = { x: APRON.x + rng.range(-0.75, 0.75), y: APRON.y + rng.range(-0.30, 0.30) };
+      let gap = Infinity;
+      for (const other of state.aircraft) {
+        if (!other.alive || !onGround(other)) continue;
+        gap = Math.min(gap, dist(cand.x, cand.y, other.x, other.y));
+      }
+      if (gap > bestGap) { bestGap = gap; best = cand; }
+      if (gap > 0.3) break;
+    }
+    ac.x = best.x; ac.y = best.y;
     ac.phase = 'stand';
     ac.standAt = state.simTime;
   } else {
@@ -1989,6 +2161,7 @@ function commitSpawn(ac) {
   if (state.aircraft.length >= MAX_AIRCRAFT) return null;
   const kind = ac.kind;
   ac.spawnTime = state.simTime;
+  ac.sectorOwner = bandOf(ac.alt);
   ac.radar = { x:ac.x, y:ac.y, alt:ac.alt, gs:ac.gs, track:ac.track || ac.hdg,
                vs:ac.vs, t:state.simTime };
   state.aircraft.push(ac);
@@ -2004,7 +2177,8 @@ function commitSpawn(ac) {
       log('sys', 'Paused automatically: ' + ac.callsign + ' has checked in.');
     }
     log('pilot', ac.callsign + ' with you over ' + ac.entryFix + ', ' + fmtAlt(ac.alt) +
-        (ac.procedure ? ', on the ' + ac.procedure + ' arrival' : '') + '.');
+        (ac.procedure ? ', on the ' + ac.procedure + ' arrival'
+                      : (ac.dest && ac.dest !== FIELD.id ? ', inbound ' + ac.dest : '')) + '.');
   } else {
     log('pilot', ac.callsign + ' with you over ' + ac.entryFix + ', ' +
         fmtAlt(ac.alt) + ', overflight to ' + ac.exitFix + '.');
@@ -2290,11 +2464,11 @@ function approachEnvelope(ac, rwy) {
     }
   }
 
-  const gsAlt = glideslopeAlt(Math.max(g.along, 0));
+  const gsAlt = glideslopeAlt(Math.max(g.along, 0), rwy);
   if (ac.alt > gsAlt + 250) {
     reasons.push('we are ' + Math.round(ac.alt - gsAlt) + ' feet above the glidepath');
   }
-  if (ac.alt < FIELD.elev + 700) {
+  if (ac.alt < rwyElev(rwy) + 700) {
     reasons.push('we are too low to intercept');
   }
   if (ac.ias > LOC_MAX_SPD) {
@@ -2327,7 +2501,7 @@ function approachUpdate(ac, dt) {
   const wind = windAt(ac.alt);
 
   /* Flew through the localiser and kept going — give it back to the controller. */
-  if (g.along > LOC_RANGE_NM + 6 || (g.along < -0.3 && ac.alt > FIELD.elev + 200)) {
+  if (g.along > LOC_RANGE_NM + 6 || (g.along < -0.3 && ac.alt > rwyElev(rwy) + 200)) {
     cancelApproach(ac, true);
     return null;
   }
@@ -2346,7 +2520,7 @@ function approachUpdate(ac, dt) {
   }
 
   /* Vertical: capture the glidepath from below, then fly it. */
-  const gsAlt = glideslopeAlt(Math.max(g.along, 0));
+  const gsAlt = glideslopeAlt(Math.max(g.along, 0), rwy);
   let vsOverride = null;
   if (!ap.gsCaptured && ap.locCaptured && g.along > 0.6 && ac.alt <= gsAlt + 80) {
     ap.gsCaptured = true;
@@ -2355,7 +2529,7 @@ function approachUpdate(ac, dt) {
   if (ap.gsCaptured) {
     const pathVs = -GS_FT_PER_NM * (ac.gs / 60);
     vsOverride   = clamp(pathVs + (gsAlt - ac.alt) * 3, -2000, 600);
-    ac.assignedAlt = FIELD.elev;
+    ac.assignedAlt = rwyElev(rwy);
   }
 
   /* Speed schedule down the approach. */
@@ -2391,7 +2565,7 @@ function approachUpdate(ac, dt) {
   }
 
   /* Decision height: no visual contact below minima means a missed approach. */
-  if (!ap.daChecked && ac.alt <= FIELD.elev + CAT1_DH_AGL + 40) {
+  if (!ap.daChecked && ac.alt <= rwyElev(rwy) + CAT1_DH_AGL + 40) {
     ap.daChecked = true;
     if (fieldIsBelowMinima()) {
       goAround(ac, 'no visual contact at minimums, ceiling ' +
@@ -2401,7 +2575,7 @@ function approachUpdate(ac, dt) {
   }
 
   /* Touchdown. */
-  if (g.along <= 0.12 && ac.alt <= FIELD.elev + 130) {
+  if (g.along <= 0.12 && ac.alt <= rwyElev(rwy) + 130) {
     touchdown(ac, rwy);
     return null;
   }
@@ -2425,12 +2599,13 @@ function cancelApproach(ac, flewThrough) {
 
 function goAround(ac, reason) {
   const rwy = getRunway((ac.approach && ac.approach.rwy) || ac.approachRwyLast);
+  const elev = rwyElev(rwy);
   ac.approach = null;
   ac.navMode  = 'hdg';
   ac.phase    = 'missed';
   ac.turnDir  = null;
   ac.assignedHdg = rwy ? rwy.hdg : ac.hdg;
-  ac.assignedAlt = Math.round((FIELD.elev + MISSED_ALT_AGL) / 1000) * 1000;
+  ac.assignedAlt = Math.round((elev + MISSED_ALT_AGL) / 1000) * 1000;
   ac.assignedIas = Math.min(ac.perf.maxIas, 200);
   state.score.goArounds++;
   log('warn', ac.callsign + ' going around — ' + reason + '. Climbing ' +
@@ -2443,7 +2618,7 @@ function touchdown(ac, rwy) {
   ac.rolloutRwy = rwy.id;
   ac.approach = null;
   ac.navMode = 'hdg';
-  ac.alt = FIELD.elev; ac.vs = 0;
+  ac.alt = rwyElev(rwy); ac.vs = 0;
   ac.hdg = ac.assignedHdg = rwy.hdg;
   ac.assignedIas = 0;
   state.score.landings++;
@@ -2835,7 +3010,7 @@ function rolloutUpdate(ac, dt) {
   }
   ac.gs = ac.ias;  ac.vs = 0;  ac.alt = FIELD.elev;  ac.track = ac.hdg;
   if (ac.ias < 25 && !ac.emergencyRollout) {
-    if (!state.groundOps) { markForRemoval(ac, 'landed'); return; }
+    if (!state.groundOps || (rwy && rwy.apt !== FIELD.id)) { markForRemoval(ac, 'landed'); return; }
     ac.phase = 'vacating';
     ac.ground = { target: exitPoint(rwy || getRunway(state.activeArr)), why:'runway exit' };
   }
@@ -2908,6 +3083,7 @@ function updateAircraft(ac, dt) {
 
   /* Clearances the crew has now got round to acting on. */
   runPendingClearances(ac);
+  updateVerticalSplit(ac, dt);
 
   /* Fuel burns down for everybody; only a declared emergency has a deadline. */
   ac.fuelMinutes = Math.max(0, (ac.fuelMinutes || 0) - dt / 60 *
@@ -3095,12 +3271,78 @@ function nearestEdgeFix(ac) {
   return best;
 }
 
+/* --- the vertical split ---------------------------------------------------
+ * The sector can be split into a low and a high position. You work one of
+ * them: traffic crossing the split has to be handed over, in either direction,
+ * exactly like a lateral handoff - except the aircraft stays on your screen,
+ * greyed out, as somebody else's problem.
+ * ------------------------------------------------------------------------ */
+function bandOf(altFt) { return altFt >= state.split.alt ? 'high' : 'low'; }
+
+/** Is this aircraft in the vertical band the controller is working? */
+function inMyBand(ac) {
+  if (!state.split.enabled) return true;
+  return ac.sectorOwner === state.sectorPos;
+}
+
+/**
+ * Traffic crossing the split. Anything the other position owns is handed to
+ * you promptly; anything you own becomes yours to hand over, and leaving it
+ * too long is a bust just like flying out of the side of the sector.
+ */
+function updateVerticalSplit(ac, dt) {
+  if (!state.split.enabled || ac.handedOff || onGround(ac)) { ac.vertHandoffDue = false; return; }
+  const band = bandOf(ac.alt);
+  if (band === ac.sectorOwner) { ac.vertHandoffDue = false; ac.bandSince = 0; return; }
+
+  ac.bandSince = (ac.bandSince || 0) + dt;
+
+  if (ac.sectorOwner !== state.sectorPos) {
+    /* The other position has it and it has come into your band: they give it
+       to you after a short coordination delay. */
+    if (ac.bandSince > 15) {
+      ac.sectorOwner = band;
+      ac.bandSince = 0;
+      log('pilot', ac.callsign + ' with you, ' + fmtAlt(ac.alt) + '.');
+    }
+    return;
+  }
+
+  /* You have it and it is leaving your band: hand it over. */
+  ac.vertHandoffDue = true;
+  const overshoot = Math.abs(ac.alt - state.split.alt);
+  if (overshoot > 2500) {
+    state.score.busts++;
+    log('err', ac.callsign + ' went ' + Math.round(overshoot) + ' ft into the ' + band +
+        ' sector without a handoff - SECTOR BUST.');
+    tone('alert');
+    ac.sectorOwner = band;          // they take it anyway, and they are not pleased
+    ac.vertHandoffDue = false;
+    ac.bandSince = 0;
+  }
+}
+
 /* --- handoff ------------------------------------------------------------- */
 function attemptHandoff(ac) {
   if (!ac) return { ok:false, reason:'no aircraft selected' };
   if (ac.nordo) return { ok:false, reason:ac.callsign + ' is NORDO — no reply' };
   if (ac.phase === 'takeoff' || ac.phase === 'rollout') {
     return { ok:false, reason:ac.callsign + ' is still on the runway' };
+  }
+  /* Crossing the vertical split hands over to the other position, in the
+     sector, without the aircraft going anywhere. */
+  if (state.split.enabled && ac.vertHandoffDue && ac.sectorOwner === state.sectorPos) {
+    const to = bandOf(ac.alt);
+    ac.sectorOwner = to;
+    ac.vertHandoffDue = false;
+    ac.bandSince = 0;
+    ac.pending.length = 0;
+    state.score.handoffs++;
+    log('ok', ac.callsign + ' transferred to the ' + to + ' sector, ' + fmtAlt(ac.alt) + '.');
+    return { ok:true, reason:'' };
+  }
+  if (state.split.enabled && !inMyBand(ac)) {
+    return { ok:false, reason:ac.callsign + ' belongs to the ' + ac.sectorOwner + ' sector' };
   }
   if (ac.kind === 'arrival' && ac.phase !== 'missed' && !ac.emergency) {
     return { ok:false, reason:ac.callsign + ' is an arrival for ' + FIELD.name +
@@ -3686,6 +3928,23 @@ function beginRunwayChange(toId, noticeSeconds) {
   return true;
 }
 
+/** Keep the satellite field's runway into wind as the wind veers. */
+function updateSatelliteRunway() {
+  if (!state.secondAirport) return;
+  const sat = AIRPORTS.find(a => !a.primary);
+  if (!sat) return;
+  const want = preferredRunwayFor(sat.id);
+  if (want && want.id !== state.activeArr2) {
+    /* Nobody already established gets moved. */
+    const busy = state.aircraft.some(a => a.navMode === 'approach' &&
+      getRunway(a.approach.rwy) && getRunway(a.approach.rwy).apt === sat.id);
+    if (!busy) {
+      state.activeArr2 = want.id;
+      log('sys', sat.name + ' is now using runway ' + want.id + '.');
+    }
+  }
+}
+
 function updateRunwayChange(dt) {
   /* A sustained tailwind on the landing runway triggers the switch. */
   if (state.autoRunwayChange && !state.rwyChange) {
@@ -3700,6 +3959,7 @@ function updateRunwayChange(dt) {
       }
     }
   }
+  updateSatelliteRunway();
   if (!state.rwyChange || state.simTime < state.rwyChange.at) return;
 
   const from = state.rwyChange.from, to = state.rwyChange.to;
@@ -3993,6 +4253,262 @@ function replaySeekTo(t) {
   updateStrips(true);
   updateSidePanel();
   return true;
+}
+
+/* ============================================================================
+ * SECTION 8c — AIRSPACE: EXPORT, IMPORT, EDITING
+ *
+ * The world above is the default airspace. It can be written out as text,
+ * edited, pasted back, or built from real-world coordinates. Everything the
+ * simulation reads about geography goes through the bindings rebuilt here.
+ * ========================================================================== */
+
+const NM_PER_DEG_LAT = 60;
+
+/** Lat/long to sector coordinates, about a reference point. */
+function latLonToXY(lat, lon, originLat, originLon) {
+  return { x: (lon - originLon) * NM_PER_DEG_LAT * Math.cos(originLat * DEG2RAD),
+           y: (lat - originLat) * NM_PER_DEG_LAT };
+}
+
+function n2(v) { return Math.round(v * 100) / 100; }
+
+/**
+ * Write the current airspace out in the text format. Round-trips through
+ * parseWorld(): a self-test asserts it.
+ */
+function exportWorld() {
+  const L = [];
+  L.push('# Sector 24 airspace');
+  L.push('sector ' + SECTOR.map(p2 => n2(p2.x) + ',' + n2(p2.y)).join(' '));
+  for (const a of AIRPORTS) {
+    L.push('airport ' + a.id + ' ' + n2(a.x) + ' ' + n2(a.y) + ' ' + Math.round(a.elev) +
+           (a.primary ? ' primary' : ''));
+  }
+  const seen = new Set();
+  for (const r of RUNWAYS) {
+    if (seen.has(r.phys)) continue;
+    seen.add(r.phys);
+    const other = RUNWAYS.find(x => x.phys === r.phys && x.id !== r.id);
+    const cx = (r.thr.x + r.end.x) / 2, cy = (r.thr.y + r.end.y) / 2;
+    L.push('runway ' + r.apt + ' ' + r.id + (other ? '/' + other.id : '') + ' ' +
+           Math.round(r.hdg) + ' ' + n2(cx) + ' ' + n2(cy) + ' ' + n2(r.len / 2));
+  }
+  for (const f of FIXES) {
+    L.push('fix ' + f.name + ' ' + n2(f.x) + ' ' + n2(f.y) +
+           (f.edge ? ' edge' : '') + (f.gate ? ' gate' : ''));
+  }
+  for (const w of AIRWAYS) L.push('airway ' + w.id + ' ' + w.pts.join(' '));
+  for (const id in RUNWAY_GATES) L.push('gates ' + id + ' ' + RUNWAY_GATES[id].join(' '));
+  for (const k in ARRIVAL_ROUTES) L.push('arrival ' + ARRIVAL_ROUTES[k].join(' '));
+  L.push('exit ' + DEPARTURE_EXITS.join(' '));
+  for (const r of OVERFLIGHT_ROUTES) L.push('overflight ' + r.join(' '));
+  for (const pr of PROCEDURES) {
+    if (pr.kind === 'star') {
+      L.push('star ' + pr.id + ' ' + pr.entry + ' ' + pr.gateSide + ' ' +
+             pr.legs.map(l => l.fix + ' ' + (l.altMax == null ? '-' : l.altMax) + ' ' +
+                              (l.spd == null ? '-' : l.spd)).join(' '));
+    } else {
+      L.push('sid ' + pr.id + ' ' + pr.exit + ' ' +
+             pr.legs.map(l => l.fix + ' ' + (l.altMin == null ? '-' : l.altMin)).join(' '));
+    }
+  }
+  return L.join('\n');
+}
+
+/**
+ * Read the text format back into an airspace definition. Also understands
+ * real-world coordinates: `origin <lat> <lon>` sets the reference point, after
+ * which `fixll` and `airportll` take degrees instead of nautical miles.
+ * Returns { def, errors }.
+ */
+function parseWorld(text) {
+  const def = { airports:[], sector:[], fixes:[], runways:[], airways:[], gates:{},
+                arrivalRoutes:{}, exits:[], overflights:[], procedures:[] };
+  const errors = [];
+  let originLat = null, originLon = null;
+  const num = v => { const n = parseFloat(v); return Number.isFinite(n) ? n : null; };
+
+  String(text || '').split(/\r?\n/).forEach((raw, i) => {
+    const line = raw.replace(/#.*$/, '').trim();
+    if (!line) return;
+    const p2 = line.split(/\s+/);
+    const verb = p2[0].toLowerCase();
+    const bad = m => errors.push('line ' + (i + 1) + ': ' + m);
+    try {
+      switch (verb) {
+        case 'origin': {
+          originLat = num(p2[1]); originLon = num(p2[2]);
+          if (originLat === null || originLon === null) bad('origin needs a latitude and longitude');
+          break;
+        }
+        case 'sector': {
+          for (let k = 1; k < p2.length; k++) {
+            const xy = p2[k].split(',');
+            const x = num(xy[0]), y = num(xy[1]);
+            if (x === null || y === null) { bad('bad boundary point "' + p2[k] + '"'); return; }
+            def.sector.push({ x, y });
+          }
+          break;
+        }
+        case 'airport':
+          if (!p2[1]) { bad('airport needs an identifier'); break; }
+          def.airports.push({ id:p2[1].toUpperCase(), name:p2[1].toUpperCase(),
+                              x:num(p2[2]) || 0, y:num(p2[3]) || 0, elev:num(p2[4]) || 0,
+                              primary:/primary/i.test(line) });
+          break;
+        case 'airportll': {
+          if (originLat === null) { bad('airportll needs an origin first'); break; }
+          const xy = latLonToXY(num(p2[2]), num(p2[3]), originLat, originLon);
+          def.airports.push({ id:p2[1].toUpperCase(), name:p2[1].toUpperCase(),
+                              x:n2(xy.x), y:n2(xy.y), elev:num(p2[4]) || 0,
+                              primary:/primary/i.test(line) });
+          break;
+        }
+        case 'runway': {
+          const ids = String(p2[2] || '').split('/');
+          const hdg = num(p2[3]);
+          if (!ids[0] || hdg === null) { bad('runway needs an identifier and a heading'); break; }
+          def.runways.push({ apt:p2[1].toUpperCase(), ids, hdg,
+                             cx:num(p2[4]) || 0, cy:num(p2[5]) || 0, half:num(p2[6]) || 1 });
+          break;
+        }
+        case 'fix':
+          if (!p2[1]) { bad('fix needs a name'); break; }
+          def.fixes.push({ name:p2[1].toUpperCase(), x:num(p2[2]) || 0, y:num(p2[3]) || 0,
+                           edge:/\bedge\b/i.test(line), gate:/\bgate\b/i.test(line) });
+          break;
+        case 'fixll': {
+          if (originLat === null) { bad('fixll needs an origin first'); break; }
+          const xy = latLonToXY(num(p2[2]), num(p2[3]), originLat, originLon);
+          def.fixes.push({ name:p2[1].toUpperCase(), x:n2(xy.x), y:n2(xy.y),
+                           edge:/\bedge\b/i.test(line), gate:/\bgate\b/i.test(line) });
+          break;
+        }
+        case 'airway':
+          def.airways.push({ id:p2[1], pts:p2.slice(2).map(x => x.toUpperCase()) });
+          break;
+        case 'gates':
+          def.gates[p2[1]] = p2.slice(2).map(x => x.toUpperCase());
+          break;
+        case 'arrival':
+          def.arrivalRoutes[p2[1].toUpperCase()] = p2.slice(1).map(x => x.toUpperCase());
+          break;
+        case 'exit':
+          def.exits = p2.slice(1).map(x => x.toUpperCase());
+          break;
+        case 'overflight':
+          def.overflights.push(p2.slice(1).map(x => x.toUpperCase()));
+          break;
+        case 'star': {
+          const legs = [];
+          for (let k = 4; k + 2 < p2.length + 1; k += 3) {
+            if (!p2[k]) break;
+            legs.push({ fix:p2[k].toUpperCase(),
+                        altMax: p2[k+1] === '-' ? null : num(p2[k+1]),
+                        spd:    p2[k+2] === '-' ? null : num(p2[k+2]) });
+          }
+          def.procedures.push({ id:p2[1].toUpperCase(), kind:'star', entry:p2[2].toUpperCase(),
+                                gateSide:(p2[3] || 'north').toLowerCase(), legs });
+          break;
+        }
+        case 'sid': {
+          const legs = [];
+          for (let k = 3; k < p2.length; k += 2) {
+            if (!p2[k]) break;
+            legs.push({ fix:p2[k].toUpperCase(),
+                        altMin: p2[k+1] === '-' || p2[k+1] === undefined ? null : num(p2[k+1]) });
+          }
+          def.procedures.push({ id:p2[1].toUpperCase(), kind:'sid', exit:p2[2].toUpperCase(), legs });
+          break;
+        }
+        default:
+          bad('unknown keyword "' + p2[0] + '"');
+      }
+    } catch (e) { bad('could not be read'); }
+  });
+
+  if (!def.airports.length)  errors.push('no airport defined');
+  if (def.sector.length < 3) errors.push('the sector boundary needs at least three points');
+  if (!def.runways.length)   errors.push('no runway defined');
+  return { def, errors };
+}
+
+/** Install an airspace definition, rebuilding everything derived from it. */
+function applyWorld(def) {
+  AIRPORTS = def.airports.map(a => Object.assign({}, a));
+  if (!AIRPORTS.some(a => a.primary)) AIRPORTS[0].primary = true;
+  FIELD = AIRPORTS.find(a => a.primary) || AIRPORTS[0];
+
+  SECTOR = def.sector.map(p2 => ({ x:p2.x, y:p2.y }));
+  FIXES  = def.fixes.map(f => Object.assign({}, f));
+
+  RUNWAYS = [];
+  for (const r of def.runways) {
+    const phys = 'R' + (RUNWAYS.length + 1);
+    const mk = (id, hdg) => {
+      const u = vecFromHeading(hdg, 1);
+      return { id, hdg: normalizeHeading(hdg), phys, apt:r.apt,
+               thr:{ x:r.cx - u.x * r.half, y:r.cy - u.y * r.half },
+               end:{ x:r.cx + u.x * r.half, y:r.cy + u.y * r.half },
+               u, right:{ x:u.y, y:-u.x }, len:r.half * 2 };
+    };
+    RUNWAYS.push(mk(r.ids[0], r.hdg));
+    if (r.ids[1]) RUNWAYS.push(mk(r.ids[1], normalizeHeading(r.hdg + 180)));
+  }
+
+  AIRWAYS = def.airways.map(w => ({ id:w.id, pts:w.pts.slice() }));
+  RUNWAY_GATES = {};
+  for (const k in def.gates) RUNWAY_GATES[k] = def.gates[k].slice();
+  ARRIVAL_ROUTES = {};
+  for (const k in def.arrivalRoutes) ARRIVAL_ROUTES[k] = def.arrivalRoutes[k].slice();
+  ARRIVAL_ENTRIES = Object.keys(ARRIVAL_ROUTES);
+  DEPARTURE_EXITS = def.exits.slice();
+  OVERFLIGHT_ROUTES = def.overflights.map(r => r.slice());
+  PROCEDURES = def.procedures.map(pr => ({
+    id:pr.id, kind:pr.kind, entry:pr.entry, exit:pr.exit, gateSide:pr.gateSide,
+    legs: pr.legs.map(l => Object.assign({}, l))
+  }));
+
+  APRON = { x: FIELD.x - 0.15, y: FIELD.y + 1.75 };
+
+  /* Point the sector at runways that actually exist. */
+  const primaryRwys = RUNWAYS.filter(r => r.apt === FIELD.id);
+  if (primaryRwys.length && !primaryRwys.some(r => r.id === state.activeArr)) {
+    state.activeArr = state.activeDep = primaryRwys[0].id;
+  }
+  const sat = AIRPORTS.find(a => !a.primary);
+  if (sat) {
+    const sr = RUNWAYS.filter(r => r.apt === sat.id);
+    if (sr.length && !sr.some(r => r.id === state.activeArr2)) state.activeArr2 = sr[0].id;
+  }
+  return true;
+}
+
+/** The airspace as it ships, captured once so RESET can always get back to it. */
+let DEFAULT_WORLD_TEXT = null;
+
+function loadWorldText(text) {
+  const r = parseWorld(text);
+  if (r.errors.length) return r;
+  /* Validate before installing: a broken world must not take the sim with it. */
+  const names = new Set(r.def.fixes.map(f => f.name));
+  for (const w of r.def.airways) {
+    for (const pt of w.pts) if (!names.has(pt)) r.errors.push('airway ' + w.id + ' uses unknown fix ' + pt);
+  }
+  for (const k in r.def.arrivalRoutes) {
+    for (const pt of r.def.arrivalRoutes[k]) {
+      if (!names.has(pt)) r.errors.push('arrival ' + k + ' uses unknown fix ' + pt);
+    }
+  }
+  for (const pr of r.def.procedures) {
+    for (const l of pr.legs) if (!names.has(l.fix)) r.errors.push(pr.id + ' uses unknown fix ' + l.fix);
+  }
+  for (const ex of r.def.exits) if (!names.has(ex)) r.errors.push('exit list names unknown fix ' + ex);
+  if (r.errors.length) return r;
+
+  applyWorld(r.def);
+  return r;
 }
 
 /* ============================================================================
@@ -4602,6 +5118,10 @@ function runCommandTokens(ac, tokens, start) {
     log('err', ac.callsign + ' is on the next sector’s frequency and no longer hears you.');
     return false;
   }
+  if (state.split.enabled && !inMyBand(ac)) {
+    log('err', ac.callsign + ' is on the ' + ac.sectorOwner + ' sector’s frequency.');
+    return false;
+  }
   if (ac.phase === 'rollout') {
     log('err', ac.callsign + ' is still rolling out.');
     return false;
@@ -4845,6 +5365,7 @@ function drawRunways() {
   ctx.lineWidth = 1;
   ctx.font = '9px monospace';
   for (const r of RUNWAYS) {
+    if (!state.secondAirport && r.apt !== FIELD.id) continue;
     const back = { x: -r.u.x, y: -r.u.y };
     const a = worldToScreen(r.thr.x, r.thr.y);
     const b = worldToScreen(r.thr.x + back.x * LOC_RANGE_NM, r.thr.y + back.y * LOC_RANGE_NM);
@@ -4869,6 +5390,7 @@ function drawRunways() {
   ctx.lineCap = 'butt';
   const drawn = new Set();
   for (const r of RUNWAYS) {
+    if (!state.secondAirport && r.apt !== FIELD.id) continue;
     if (drawn.has(r.phys)) continue;
     drawn.add(r.phys);
     const a = worldToScreen(r.thr.x, r.thr.y);
@@ -4898,20 +5420,25 @@ function drawRunways() {
       ctx.lineWidth = Math.max(1.5, state.view.pxPerNm * 0.05);
     }
     ctx.fillStyle = '#1d2f38';
+    const aw = state.view.pxPerNm * 1.7, ah = state.view.pxPerNm * 0.8;
     ctx.beginPath();
-    ctx.arc(ap.sx, ap.sy, Math.max(4, state.view.pxPerNm * 0.42), 0, Math.PI * 2);
+    if (ctx.roundRect) ctx.roundRect(ap.sx - aw / 2, ap.sy - ah / 2, aw, ah, 6);
+    else ctx.rect(ap.sx - aw / 2, ap.sy - ah / 2, aw, ah);
     ctx.fill();
     ctx.fillStyle = C.dim;
     ctx.font = '9px monospace';
-    ctx.fillText('APRON', ap.sx - 16, ap.sy - state.view.pxPerNm * 0.5);
+    ctx.fillText('APRON', ap.sx - 16, ap.sy - ah / 2 - 4);
     ctx.lineWidth = 1;
   }
 
-  /* field label */
-  const f = worldToScreen(FIELD.x, FIELD.y + 2.6);
+  /* field labels */
   ctx.fillStyle = C.rwy;
   ctx.font = 'bold 10px monospace';
-  ctx.fillText(FIELD.name, f.sx - 14, f.sy);
+  for (const apt of activeAirports()) {
+    const f = worldToScreen(apt.x, apt.y + 2.6);
+    ctx.fillText(apt.name + (apt.primary ? '' : ' \u00b7 RWY ' + state.activeArr2),
+                 f.sx - 14, f.sy);
+  }
   ctx.restore();
 }
 
@@ -5009,6 +5536,7 @@ function passesFilter(ac) {
 
 /** True when this aircraft belongs to the position being worked. */
 function ownedByPosition(ac) {
+  if (!inMyBand(ac)) return false;
   if (state.hotSeat === 'both') return true;
   return state.hotSeat === 'arr' ? ac.kind === 'arrival' : ac.kind !== 'arrival';
 }
@@ -5526,6 +6054,7 @@ function render() {
   drawConflictLines();
   drawAircraftSymbols();
   drawGroundTraffic();
+  drawEditorHandles();
   drawTools();
 
   const nowMs = performance.now();
@@ -5696,6 +6225,8 @@ function currentAdvisories() {
  * ------------------------------------------------------------------------ */
 function hintFor(ac) {
   if (!ac || ac.handedOff) return '';
+  if (ac.vertHandoffDue) return 'transfer it to the ' + bandOf(ac.alt) + ' sector (HO)';
+  if (!inMyBand(ac)) return 'the ' + ac.sectorOwner + ' sector has this one';
   if (ac.nordo) return 'NORDO — plan around it, it cannot hear you';
   if (ac.wxRequest) return 'answer the weather deviation request';
   if (ac.needsFuelDump && !ac.dumping) return 'approve fuel dumping (DUMP)';
@@ -5713,20 +6244,24 @@ function hintFor(ac) {
   if (ac.phase === 'takeoff')   return 'rolling — nothing needed yet';
 
   if (ac.kind === 'arrival') {
-    const rwy = getRunway(state.activeArr);
+    const rwy = arrivalRunwayFor(ac);
+    const where = ac.dest && ac.dest !== FIELD.id ? ac.dest + ' ' : '';
     if (ac.navMode === 'approach') return 'established — watch the spacing behind';
     if (ac.diverting) return 'diverting, let it go';
     if (!rwy) return '';
     const g = runwayGeometry(ac, rwy);
-    const gsAlt = glideslopeAlt(Math.max(g.along, 0));
+    const gsAlt = glideslopeAlt(Math.max(g.along, 0), rwy);
     if (ac.alt > gsAlt + 4000 && g.along < 18) return 'high — descend it now or extend downwind';
+    if (ac.dest && ac.dest !== FIELD.id && ac.navMode === 'hdg' && g.along > 20) {
+      return 'turn it toward ' + ac.dest;
+    }
     if (ac.procedure && !ac.viaProcedure && ac.navMode === 'fix') return 'clear it to descend via ' + ac.procedure + ' (DVA)';
     if (ac.ias > 250 && ac.alt < 14000) return 'slow it down (S250 or less)';
     const env = approachEnvelope(ac, rwy);
-    if (env.ok) return 'in the envelope — clear the ILS ' + rwy.id;
+    if (env.ok) return 'in the envelope — clear the ILS ' + rwy.id + (where ? ' at ' + ac.dest : '');
     if (Math.abs(g.xtk) > 2 && g.along < 16 && g.along > 2) return 'turn it onto the localiser';
-    if (ac.requestedVectors) return 'it needs a vector toward final';
-    return 'descend and position for the ' + rwy.id + ' final';
+    if (ac.requestedVectors) return 'it needs a vector toward ' + where + 'final';
+    return 'descend and position for the ' + where + rwy.id + ' final';
   }
   if (ac.kind === 'departure') {
     const need = releaseAltFor(ac);
@@ -5765,19 +6300,22 @@ function runAiController(dt) {
   if (state.aiTimer > 0) return;
   state.aiTimer = 3;
 
-  const rwy = getRunway(state.activeArr);
-  if (!rwy) return;
-  const gate = { x: rwy.thr.x - rwy.u.x * 10, y: rwy.thr.y - rwy.u.y * 10 };
+  if (!getRunway(state.activeArr)) return;
   const say = cmd => { state.aiSaid = (state.aiSaid || 0) + 1; executeCommandLine(cmd, { allowMulti:false }); };
 
-  /* Only one aircraft inside 9 NM on final at a time. */
-  const slotBusy = state.aircraft.some(a => a.navMode === 'approach' &&
-    runwayGeometry(a, getRunway(a.approach.rwy)).along < 9);
+  /* Only one aircraft inside 9 NM on final to each runway at a time. */
+  const busyPhys = new Set();
+  for (const a of state.aircraft) {
+    if (a.navMode !== 'approach') continue;
+    const r = getRunway(a.approach.rwy);
+    if (r && runwayGeometry(a, r).along < 9) busyPhys.add(r.phys);
+  }
 
   for (const ac of state.aircraft.slice()) {
     if (!ac.alive || ac.nordo || ac.handedOff || ac.diverting) continue;
     if (ac.phase === 'takeoff' || ac.phase === 'rollout') continue;
     if (!ownedByPosition(ac)) continue;
+    if (ac.vertHandoffDue) { say(ac.callsign + ' HO'); continue; }
     if (ac.wxRequest) { say(ac.callsign + ' DEV ' + ac.wxRequest.side); continue; }
     if (ac.needsFuelDump && !ac.dumping) { say(ac.callsign + ' DUMP'); continue; }
 
@@ -5801,6 +6339,9 @@ function runAiController(dt) {
     if (ac.navMode === 'approach') continue;
 
     /* ---- arrivals: steps down, then downwind, base, final ---- */
+    const rwy = arrivalRunwayFor(ac);
+    if (!rwy) continue;
+    const gate = { x: rwy.thr.x - rwy.u.x * 10, y: rwy.thr.y - rwy.u.y * 10 };
     const p = aiPlanFor(ac);
     const g = runwayGeometry(ac, rwy);
     if (!p.dw) {
@@ -5835,14 +6376,15 @@ function runAiController(dt) {
     }
 
     /* too high to intercept? take a lap */
-    if (p.stage >= 1 && g.along < 14 && ac.alt > glideslopeAlt(Math.max(g.along, 0)) + 900 &&
+    if (p.stage >= 1 && g.along < 14 && ac.alt > glideslopeAlt(Math.max(g.along, 0), rwy) + 900 &&
         p.held < 2 && ac.navMode !== 'hold') {
       say(ac.callsign + ' HOLD BRAVO'); p.held++;
     }
     if (ac.navMode === 'hold' && ac.alt <= 3200) { say(ac.callsign + ' XH'); p.stage = 0; }
 
-    if (!slotBusy && p.stage === 2 && approachEnvelope(ac, rwy).ok) {
+    if (!busyPhys.has(rwy.phys) && p.stage === 2 && approachEnvelope(ac, rwy).ok) {
       say(ac.callsign + ' ILS ' + rwy.id);
+      busyPhys.add(rwy.phys);
     }
   }
 }
@@ -6051,6 +6593,7 @@ function refreshStripNode(n, ac) {
   else if (ac.needsFuelDump && !ac.dumping) { note = 'DUMP?'; noteCls = 'warn'; }
   else if (ac.dumping)          { note = 'DUMPING'; noteCls = 'warn'; }
   else if (ac.pendingQuery)     { note = 'SAY AGAIN'; noteCls = 'warn'; }
+  else if (ac.vertHandoffDue)   { note = 'XFER ' + bandOf(ac.alt).toUpperCase(); noteCls = 'bad'; }
   else if (ac.requestedHandoff) { note = 'H/O DUE'; noteCls = 'warn'; }
   else if (ac.requestedVectors && ac.navMode === 'hdg') { note = 'VECTORS?'; noteCls = 'warn'; }
   else if (ac.fuelMinutes < 20) { note = Math.round(ac.fuelMinutes) + 'min FOB'; noteCls = 'warn'; }
@@ -6348,6 +6891,7 @@ canvas.addEventListener('pointerdown', ev => {
   if (ev.button === 2) return;                     // the context menu handles this
   const p = canvasPoint(ev);
   drag.downX = p.x; drag.downY = p.y; drag.lastX = p.x; drag.lastY = p.y; drag.moved = false;
+  if (editorPointerDown(p.x, p.y)) { canvas.setPointerCapture(ev.pointerId); return; }
   const blk = blockAt(p.x, p.y);
   const ac  = aircraftAt(p.x, p.y);
 
@@ -6415,6 +6959,7 @@ canvas.addEventListener('pointerdown', ev => {
 
 canvas.addEventListener('pointermove', ev => {
   const p = canvasPoint(ev);
+  if (editorPointerMove(p.x, p.y)) { drag.lastX = p.x; drag.lastY = p.y; return; }
   if (Math.hypot(p.x - drag.downX, p.y - drag.downY) > 3) drag.moved = true;
   if (!drag.mode) {
     const over = aircraftAt(p.x, p.y);
@@ -6443,6 +6988,7 @@ canvas.addEventListener('pointermove', ev => {
 });
 
 canvas.addEventListener('pointerup', ev => {
+  editorPointerUp();
   if (drag.mode === 'select' && !drag.moved) {
     if (!(ev.ctrlKey || ev.metaKey)) state.multiSelect.clear();
     selectAircraft(drag.id, false);
@@ -6594,6 +7140,7 @@ function startScenario(seedText, scenarioKey, keepRate) {
   toolReadout('');
   updateStrips(true); updateSidePanel(); updateScore(); updateOverlays();
   renderSectorTab(); renderAnalysis(); renderCampaign();
+  renderGroundPanel(); renderAirspaceTab();
 }
 
 function endSession(reason) {
@@ -6983,6 +7530,7 @@ document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () =>
   const id = b.getAttribute('data-tab');
   document.querySelectorAll('.tabpane').forEach(x => x.classList.toggle('on', x.id === id));
   if (id === 'tabAnalysis') renderAnalysis();
+  if (id === 'tabAirspace') renderAirspaceTab();
   if (id === 'tabSector') { renderSectorTab(); renderGroundPanel(); }
 }));
 function showTab(id) {
@@ -7681,6 +8229,244 @@ $('btnCampReset').addEventListener('click', () => {
   $('ratingBadge').textContent = '';
   log('sys', 'Campaign ladder reset.');
   renderCampaign();
+});
+
+/* ============================================================================
+ * SECTION 12e — AIRSPACE TAB: SECOND FIELD, SECTOR SPLIT, EDITOR
+ * ========================================================================== */
+
+bindChk('chkSecondApt', v => {
+  state.secondAirport = v;
+  log('sys', v ? 'KRDG is open: about a quarter of the arrivals are now going there, '
+              + 'and its approaches cross your north-west flow.'
+              : 'KRDG is closed.');
+  if (!v) {
+    /* Anything already committed there keeps going; nothing new is sent. */
+    for (const ac of state.aircraft) if (ac.dest && ac.dest !== FIELD.id) ac.dest = FIELD.id;
+  }
+  renderAirspaceTab();
+});
+
+bindChk('chkSplit', v => {
+  state.split.enabled = v;
+  for (const ac of state.aircraft) {
+    ac.sectorOwner = bandOf(ac.alt);
+    ac.vertHandoffDue = false;
+    ac.bandSince = 0;
+  }
+  log('sys', v ? 'Sector split at ' + fmtAlt(state.split.alt) + '. You are working the ' +
+                 state.sectorPos + ' sector; traffic crossing the split must be transferred.'
+              : 'Sector combined again — all levels are yours.');
+  updateStrips(true);
+  renderAirspaceTab();
+});
+
+$('inSplitAlt').addEventListener('change', () => {
+  const v = parseAltitudeToken(String($('inSplitAlt').value).replace(/\D/g, ''));
+  state.split.alt = clamp(Number.isFinite(v) ? v : 20000, 3000, 45000);
+  $('inSplitAlt').value = String(Math.round(state.split.alt / 100));
+  for (const ac of state.aircraft) { ac.sectorOwner = bandOf(ac.alt); ac.vertHandoffDue = false; }
+  renderAirspaceTab();
+});
+
+bindSel('selSectorPos', v => {
+  state.sectorPos = v;
+  log('sys', 'You are now working the ' + v + ' sector.');
+  updateStrips(true);
+  renderAirspaceTab();
+});
+
+function renderAirspaceTab() {
+  const low = state.aircraft.filter(a => bandOf(a.alt) === 'low').length;
+  const high = state.aircraft.length - low;
+  $('splitInfo').innerHTML = state.split.enabled
+    ? 'Split at <b>' + fmtAlt(state.split.alt) + '</b> · working the <b>' + state.sectorPos +
+      '</b> sector · ' + low + ' below, ' + high + ' above · ' +
+      state.aircraft.filter(a => a.vertHandoffDue).length + ' awaiting transfer'
+    : 'Sector combined: every level is yours.';
+  $('editHelp').textContent = state.editor.on
+    ? ({ move:'Drag a fix, an airport or a boundary point.',
+         fix:'Click to drop a new fix.',
+         boundary:'Click to add a boundary point at the nearest edge.',
+         delete:'Click a fix or boundary point to remove it.' })[state.editor.tool]
+    : 'Switch editing on to move fixes and reshape the boundary on the scope.';
+}
+
+/* --- the editor ----------------------------------------------------------- */
+bindChk('chkEdit', v => {
+  state.editor.on = v;
+  if (v) {
+    togglePause(true);
+    log('sys', 'Airspace editing on. The simulation is paused while you edit; ' +
+               'press EXPORT when you are done to get the text back.');
+  }
+  renderAirspaceTab();
+});
+bindSel('selEditTool', v => { state.editor.tool = v; renderAirspaceTab(); });
+
+/** The editable thing nearest a screen point, if any is close enough. */
+function editorHitTest(px, py) {
+  const R = 12;
+  let best = null, bd = R;
+  FIXES.forEach((f, i) => {
+    const s2 = worldToScreen(f.x, f.y);
+    const d = Math.hypot(s2.sx - px, s2.sy - py);
+    if (d < bd) { bd = d; best = { kind:'fix', idx:i }; }
+  });
+  AIRPORTS.forEach((a, i) => {
+    const s2 = worldToScreen(a.x, a.y);
+    const d = Math.hypot(s2.sx - px, s2.sy - py);
+    if (d < bd) { bd = d; best = { kind:'airport', idx:i }; }
+  });
+  SECTOR.forEach((p2, i) => {
+    const s2 = worldToScreen(p2.x, p2.y);
+    const d = Math.hypot(s2.sx - px, s2.sy - py);
+    if (d < bd) { bd = d; best = { kind:'boundary', idx:i }; }
+  });
+  return best;
+}
+
+/** Insert a boundary point on whichever edge the click was nearest. */
+function insertBoundaryPoint(w) {
+  let bestI = 0, bestD = Infinity;
+  for (let i = 0, j = SECTOR.length - 1; i < SECTOR.length; j = i++) {
+    const d = distToSegment(w.x, w.y, SECTOR[j].x, SECTOR[j].y, SECTOR[i].x, SECTOR[i].y);
+    if (d < bestD) { bestD = d; bestI = i; }
+  }
+  SECTOR.splice(bestI, 0, { x:n2(w.x), y:n2(w.y) });
+}
+
+function editorNextFixName() {
+  for (let i = 1; i < 400; i++) {
+    const name = 'FIX' + String(i).padStart(2, '0');
+    if (!FIXES.some(f => f.name === name)) return name;
+  }
+  return 'FIX' + FIXES.length;
+}
+
+/** Scope interaction while editing. Returns true when it consumed the event. */
+function editorPointerDown(px, py) {
+  if (!state.editor.on) return false;
+  const w = screenToWorld(px, py);
+  const tool = state.editor.tool;
+
+  if (tool === 'fix') {
+    FIXES.push({ name: editorNextFixName(), x:n2(w.x), y:n2(w.y),
+                 edge: !pointInPolygon(w.x, w.y, SECTOR) ||
+                       distToPolygon(w.x, w.y, SECTOR) < 6, gate:false });
+    log('sys', 'Added ' + FIXES[FIXES.length - 1].name + '.');
+    return true;
+  }
+  if (tool === 'boundary') { insertBoundaryPoint(w); log('sys', 'Boundary point added.'); return true; }
+  if (tool === 'delete') {
+    const hit = editorHitTest(px, py);
+    if (!hit) return true;
+    if (hit.kind === 'fix') {
+      const f = FIXES[hit.idx];
+      const used = AIRWAYS.some(a => a.pts.indexOf(f.name) >= 0) ||
+                   PROCEDURES.some(pr => pr.legs.some(l => l.fix === f.name)) ||
+                   Object.keys(ARRIVAL_ROUTES).some(k => ARRIVAL_ROUTES[k].indexOf(f.name) >= 0);
+      if (used) { log('err', f.name + ' is used by a route or procedure — remove it there first.'); return true; }
+      FIXES.splice(hit.idx, 1);
+      log('sys', 'Removed ' + f.name + '.');
+    } else if (hit.kind === 'boundary') {
+      if (SECTOR.length <= 3) { log('err', 'A sector needs at least three boundary points.'); return true; }
+      SECTOR.splice(hit.idx, 1);
+      log('sys', 'Boundary point removed.');
+    } else {
+      log('err', 'Airports cannot be deleted on the scope — edit the text instead.');
+    }
+    return true;
+  }
+  /* move */
+  const hit = editorHitTest(px, py);
+  if (hit) { state.editor.dragKind = hit.kind; state.editor.dragIdx = hit.idx; }
+  return true;
+}
+
+function editorPointerMove(px, py) {
+  if (!state.editor.on || !state.editor.dragKind) return false;
+  const w = screenToWorld(px, py);
+  const i = state.editor.dragIdx;
+  if (state.editor.dragKind === 'fix' && FIXES[i]) { FIXES[i].x = n2(w.x); FIXES[i].y = n2(w.y); }
+  else if (state.editor.dragKind === 'boundary' && SECTOR[i]) { SECTOR[i].x = n2(w.x); SECTOR[i].y = n2(w.y); }
+  else if (state.editor.dragKind === 'airport' && AIRPORTS[i]) {
+    const dx = n2(w.x) - AIRPORTS[i].x, dy = n2(w.y) - AIRPORTS[i].y;
+    AIRPORTS[i].x = n2(w.x); AIRPORTS[i].y = n2(w.y);
+    /* carry the runways with the field */
+    for (const r of RUNWAYS) {
+      if (r.apt !== AIRPORTS[i].id) continue;
+      r.thr.x += dx; r.thr.y += dy; r.end.x += dx; r.end.y += dy;
+    }
+    if (AIRPORTS[i].primary) APRON = { x:AIRPORTS[i].x - 0.15, y:AIRPORTS[i].y + 1.75 };
+  }
+  return true;
+}
+function editorPointerUp() { state.editor.dragKind = null; state.editor.dragIdx = -1; }
+
+/** Editing handles, drawn only while the editor is on. */
+function drawEditorHandles() {
+  if (!state.editor.on) return;
+  ctx.save();
+  ctx.strokeStyle = '#ffb020'; ctx.fillStyle = 'rgba(255,176,32,0.25)'; ctx.lineWidth = 1.2;
+  for (const p2 of SECTOR) {
+    const s2 = worldToScreen(p2.x, p2.y);
+    ctx.beginPath(); ctx.arc(s2.sx, s2.sy, 5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  }
+  ctx.strokeStyle = '#49e0e0'; ctx.fillStyle = 'rgba(73,224,224,0.25)';
+  for (const f of FIXES) {
+    const s2 = worldToScreen(f.x, f.y);
+    ctx.beginPath(); ctx.arc(s2.sx, s2.sy, 6, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  }
+  ctx.strokeStyle = '#ffffff'; ctx.fillStyle = 'rgba(255,255,255,0.25)';
+  for (const a of AIRPORTS) {
+    const s2 = worldToScreen(a.x, a.y);
+    ctx.beginPath(); ctx.arc(s2.sx, s2.sy, 8, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/* --- import / export ------------------------------------------------------ */
+$('btnWorldExport').addEventListener('click', () => {
+  $('worldBox').value = exportWorld();
+  $('worldMsg').innerHTML = '<span class="pass">Airspace written out. Copy it, edit it, ' +
+                            'paste it back and press LOAD.</span>';
+});
+
+$('btnWorldLoad').addEventListener('click', () => {
+  const text = $('worldBox').value.trim();
+  if (!text) { $('worldMsg').innerHTML = '<span class="fail">Nothing to load.</span>'; return; }
+  const before = exportWorld();
+  const r = loadWorldText(text);
+  if (r.errors.length) {
+    $('worldMsg').innerHTML = '<span class="fail">' + r.errors.slice(0, 6).join('<br>') + '</span>';
+    return;
+  }
+  /* A new world means a new session; the old traffic has nowhere to go. */
+  try {
+    startScenario(state.seedText, state.scenario, true);
+    populateSelects();
+    fitView();
+    $('worldMsg').innerHTML = '<span class="pass">Airspace loaded: ' + AIRPORTS.length +
+      ' airport(s), ' + FIXES.length + ' fixes, ' + RUNWAYS.length + ' runway ends, ' +
+      PROCEDURES.length + ' procedures.</span>';
+    log('sys', 'New airspace loaded. Session restarted.');
+  } catch (e) {
+    loadWorldText(before);
+    startScenario(state.seedText, state.scenario, true);
+    $('worldMsg').innerHTML = '<span class="fail">That airspace would not run; ' +
+                              'the previous one has been put back.</span>';
+  }
+});
+
+$('btnWorldReset').addEventListener('click', () => {
+  if (!DEFAULT_WORLD_TEXT) { $('worldMsg').textContent = 'No default captured.'; return; }
+  loadWorldText(DEFAULT_WORLD_TEXT);
+  startScenario(state.seedText, state.scenario, true);
+  populateSelects();
+  fitView();
+  $('worldBox').value = '';
+  $('worldMsg').innerHTML = '<span class="pass">Back to the default airspace.</span>';
 });
 
 /* ============================================================================
@@ -8642,6 +9428,89 @@ function runSelfTests() {
     return true;
   }));
 
+  check('the airspace export round-trips through the parser', () => {
+    const text = exportWorld();
+    const r = parseWorld(text);
+    if (r.errors.length) return 'the export does not parse: ' + r.errors.slice(0, 3).join('; ');
+    const shape = () => [AIRPORTS.length, FIXES.length, RUNWAYS.length, AIRWAYS.length,
+                         PROCEDURES.length, SECTOR.length, DEPARTURE_EXITS.length,
+                         OVERFLIGHT_ROUTES.length, Object.keys(ARRIVAL_ROUTES).length,
+                         Object.keys(RUNWAY_GATES).length].join(',');
+    const before = shape();
+    applyWorld(r.def);
+    if (shape() !== before) return 'reloading changed the world: ' + before + ' -> ' + shape();
+    if (exportWorld() !== text) return 'a second export differs from the first';
+    return true;
+  });
+
+  check('a broken airspace is refused without disturbing the live one', () => {
+    const good = exportWorld();
+    const cases = [
+      'sector 0,0 1,0\nairport ZZ 0 0 0 primary\nrunway ZZ 09/27 90 0 0 1',   // too few points
+      'total nonsense\nfix',                                                   // gibberish
+      'sector -5,-5 5,-5 5,5 -5,5\nairport AA 0 0 0 primary\n' +
+        'runway AA 09/27 90 0 0 1\nfix ONE 1 1\nairway V1 ONE TWO'             // unknown fix
+    ];
+    for (const c of cases) {
+      const r = loadWorldText(c);
+      if (!r.errors.length) return 'accepted a broken airspace: ' + c.split('\n')[0];
+    }
+    if (exportWorld() !== good) return 'a refused airspace still changed the live world';
+    return true;
+  });
+
+  check('real-world coordinates convert to the sector frame', () => {
+    /* Heathrow as the origin, with two well-known beacons either side of it. */
+    const xy1 = latLonToXY(51.3050, -0.4472, 51.4775, -0.4614);   // Ockham, ~10 NM south
+    const xy2 = latLonToXY(51.7262, -0.5497, 51.4775, -0.4614);   // Bovingdon, ~15 NM north
+    if (Math.abs(xy1.y + 10.35) > 0.5) return 'southern beacon at y=' + xy1.y.toFixed(2);
+    if (Math.abs(xy2.y - 14.92) > 0.5) return 'northern beacon at y=' + xy2.y.toFixed(2);
+    if (!(xy1.x > 0)) return 'a less negative longitude should be further east';
+    if (!(xy2.x < 0)) return 'a more negative longitude should be further west';
+    const back = latLonToXY(51.4775, -0.4614, 51.4775, -0.4614);
+    if (Math.abs(back.x) > 1e-9 || Math.abs(back.y) > 1e-9) return 'the origin is not at 0,0';
+    return true;
+  });
+
+  check('the vertical split hands traffic over in both directions', () => withSandbox(() => {
+    state.split = { enabled:true, alt:20000 };
+    state.sectorPos = 'low';
+    const ac = testAircraft({ x:5, y:5, alt:18000, tag:'vs' });
+    ac.sectorOwner = 'low'; ac.assignedAlt = 26000;
+    state.aircraft = [ac]; state.selectedId = ac.id;
+    if (!inMyBand(ac)) return 'a low aircraft is not in the low sector';
+    for (let i = 0; i < 60 * 60 * 6 && !ac.vertHandoffDue; i++) stepSim(DT);
+    if (!ac.vertHandoffDue) return 'climbing through the split raised no transfer';
+    const before = state.score.handoffs;
+    if (!attemptHandoff(ac).ok) return 'the transfer was refused';
+    if (state.score.handoffs !== before + 1) return 'the transfer was not scored';
+    if (ac.sectorOwner !== 'high') return 'ownership did not move';
+    if (inMyBand(ac)) return 'it is still in my band after the transfer';
+    ac.assignedAlt = 12000;
+    for (let i = 0; i < 60 * 60 * 12 && ac.sectorOwner !== 'low'; i++) stepSim(DT);
+    if (ac.sectorOwner !== 'low') return 'never handed back down';
+    return true;
+  }));
+
+  check('the second airport is served without disturbing the first', () => withSandbox(() => {
+    state.secondAirport = true;
+    const sat = AIRPORTS.find(a => !a.primary);
+    if (!sat) return 'no second airport defined';
+    const rwy = getRunway(state.activeArr2);
+    if (!rwy || rwy.apt !== sat.id) return 'the satellite runway is not selected';
+    if (rwyElev(rwy) !== sat.elev) return 'the satellite runway uses the wrong elevation';
+    if (Math.abs(glideslopeAlt(0, rwy) - sat.elev) > 1e-9) return 'its glidepath is at the wrong height';
+    const ac = testAircraft({ x: rwy.thr.x - rwy.u.x * 9, y: rwy.thr.y - rwy.u.y * 9,
+                              alt: glideslopeAlt(9, rwy) - 200, hdg: rwy.hdg, ias:180, tag:'sat' });
+    ac.kind = 'arrival'; ac.dest = sat.id;
+    state.aircraft = [ac]; state.selectedId = ac.id;
+    if (arrivalRunwayFor(ac) !== rwy) return 'the arrival is aimed at the wrong runway';
+    if (!executeCommandLine(ac.callsign + ' ILS ' + rwy.id)) return 'the approach was refused';
+    for (let i = 0; i < 60 * 60 * 10 && state.aircraft.length; i++) stepSim(DT);
+    if (state.score.landings !== 1) return 'it never landed at the satellite';
+    return true;
+  }));
+
   check('the test sandbox leaks nothing into the live session', () => {
     const before = {};
     for (const k in state) before[k] = state[k];
@@ -8704,8 +9573,9 @@ function populateSelects() {
   $('selMitFix').innerHTML = FIXES.filter(f => f.edge || !f.gate)
     .map(f => '<option value="' + f.name + '">' + f.name + '</option>').join('');
   $('selRwy').innerHTML = RUNWAYS.map(r =>
-    '<option value="' + r.id + '"' + (r.id === '27' ? ' selected' : '') + '>RWY ' + r.id + '</option>').join('');
-  $('selNewRwy').innerHTML = RUNWAYS.map(r =>
+    '<option value="' + r.id + '"' + (r.id === state.activeArr ? ' selected' : '') + '>RWY ' + r.id +
+    (r.apt !== FIELD.id ? ' ' + r.apt : '') + '</option>').join('');
+  $('selNewRwy').innerHTML = RUNWAYS.filter(r => r.apt === FIELD.id).map(r =>
     '<option value="' + r.id + '">RWY ' + r.id + '</option>').join('');
   $('selHighlight').innerHTML = '<option value="">nothing</option>' +
     '<optgroup label="Fixes">' + fixOpts + '</optgroup>' +
@@ -8733,6 +9603,7 @@ function uiTick(dtReal) {
     uiSlowAccum = 0;
     if ($('tabAnalysis').classList.contains('on')) renderAnalysis();
     if ($('tabSector').classList.contains('on')) { renderSectorTab(); renderGroundPanel(); }
+    if ($('tabAirspace').classList.contains('on')) renderAirspaceTab();
   }
 }
 
@@ -8762,6 +9633,7 @@ function frame(ts) {
 }
 
 function boot() {
+  DEFAULT_WORLD_TEXT = exportWorld();
   populateSelects();
   resizeCanvas();
   fitView();

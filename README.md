@@ -23,6 +23,16 @@ Loss of separation is less than **5.0 NM** laterally **and** less than **1000 ft
 vertically. On final, **wake turbulence** spacing applies instead — up to 8 NM for a
 light behind a super, plus 2 NM more under low-visibility procedures.
 
+## Ground and tower
+
+Departures start at a stand. They need pushback, then taxi themselves to the holding
+point and queue; you decide the order off the runway with `LUAW` and `TO`. A takeoff
+clearance is refused if the runway is occupied, if something is inside 4 NM on final,
+or during a ground stop. Landing aircraft vacate and ask to cross the other runway on
+their way to the apron (`XR`). The whole layer can be switched off.
+
+![the aerodrome](docs/ground.png)
+
 ## Simulation
 
 - **Published procedures.** SIDs and STARs with crossing and speed restrictions, and
@@ -48,6 +58,11 @@ light behind a super, plus 2 NM more under low-visibility procedures.
   holding stack.
 - **Fuel and diversion.** Hold someone too long and they divert, and it costs you.
   Emergencies bring fuel dumping, runway occupancy and a departure ground stop.
+- **A second airport.** KRDG opens 19 NM north-west with no published procedures, so
+  you vector every one of its arrivals — straight across your own north-west flow.
+- **A vertical sector split.** Divide the sector into a low and a high position and
+  work one of them; traffic crossing the split is transferred with `HO` in either
+  direction, and leaving it too long is a bust.
 
 ## Commands
 
@@ -73,6 +88,7 @@ button routes through the same parser, so the two input paths cannot drift apart
 | `DUMP` / `REL120` | approve fuel dumping / ask for a lower release level |
 | `HO` / `QSY` | hand off / send it to the next frequency |
 | `NOTE text` / `UNDO` | annotate a strip / take back the last clearance |
+| `PB` `LUAW` `TO` `HS` `XR` | pushback / line up and wait / takeoff / hold short / cross |
 | `ACC 3` `CTR 3 120` `REJ 3` | answer coordination offer #3 |
 | `MIT BRAVO 20` / `RWY 09` | impose miles in trail / turn the airport round |
 
@@ -82,7 +98,7 @@ less. Refusals name the condition that failed.
 
 ## Interface
 
-Four tabs beside the scope:
+Five tabs beside the scope:
 
 - **CONTROL** — the selected aircraft and every clearance as a button.
 - **DISPLAY** — declutter levels, colour by kind or altitude band, a colour-blind-safe
@@ -90,11 +106,41 @@ Four tabs beside the scope:
   trail length, brightness, UI scale, scope rotation to the landing runway,
   range-and-bearing and closest-point-of-approach tools, the vertical profile view,
   and PNG export.
-- **SECTOR** — the briefing, coordination offers, flow restrictions, runway changes,
-  the realism switches, an AI controller that works the sector for you, two-controller
-  hot-seat positions, and the scenario script box.
+- **SECTOR** — the campaign ladder, the briefing, the aerodrome and its departure
+  queue, coordination offers, flow restrictions, runway changes, the realism switches,
+  an AI controller that works the sector for you, two-controller hot-seat positions,
+  and the scenario script box.
 - **ANALYSIS** — live advisories with suggested resolutions, workload over time, a
   conflict heat map, route efficiency and the fuel cost of your vectoring.
+- **AIRSPACE** — the second airport, the vertical split, a scope editor for dragging
+  fixes and reshaping the boundary, and the airspace definition itself.
+
+![the airspace tab](docs/airspace.png)
+
+## Building your own airspace
+
+**EXPORT** on the AIRSPACE tab writes the whole sector out as text. Edit it, paste it
+back, press **LOAD**; a definition that will not run is refused and the old one stays.
+
+```
+sector -30,28 6,32 30,22 32,-10 12,-30 -20,-30 -32,-12 -32,12
+airport KSIM 0 0 640 primary
+runway KSIM 09/27 90 0 0.6 1.05
+fix TANGO -8 28 edge
+airway V21 MIKE ALPHA DELTA WHISKY
+star RIDGE2 TANGO north ALPHA 11000 250
+```
+
+For a real field, give an `origin` latitude and longitude and place things in degrees:
+
+```
+origin 51.4775 -0.4614
+airportll EGLL 51.4775 -0.4614 83 primary
+fixll OCK 51.3050 -0.4472 edge
+```
+
+There is also a **ten-stage campaign** with a pass mark per stage and a controller
+rating earned across the run.
 
 Drag arrival strips into the order you intend to land them; you are scored against
 your own plan. Press `R` to scrub the replay back, watch a conflict develop, then
@@ -132,14 +178,16 @@ t=420  rwy 09
 
 ## Self-tests
 
-37 invariant checks run on load — angle wrapping, shortest-arc turns, turn and
+45 invariant checks run on load — angle wrapping, shortest-arc turns, turn and
 altitude capture stability, separation symmetry, the 5.0 NM / 1000 ft boundary case,
 pair-once conflict evaluation, alert hysteresis, accumulator conservation, hold entry
 classification, command-parser robustness, the approach envelope, removal sweeps and
 dangling selections, seeded replay determinism, published-procedure flyability, wake
 spacing monotonicity, the rotated transform round-trip, data block layout and sizing,
-the advisor and hint output, the AI controller actually landing traffic, export
-formatting, efficiency accounting, and that the test sandbox leaks nothing into the
-live session.
+the advisor and hint output, the AI controller actually landing traffic, the full
+ground sequence from stand to airborne, runway exclusivity, campaign judging, airspace
+export round-tripping, refusal of a broken airspace, real-world coordinate conversion,
+the vertical split in both directions, the second airport, export formatting,
+efficiency accounting, and that the test sandbox leaks nothing into the live session.
 
 Results are in the **DIAG** panel; the header badge shows the pass count.
