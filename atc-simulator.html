@@ -3235,6 +3235,11 @@ function lifecycleChecks(ac) {
   if (outside && distToPolygon(ac.x, ac.y, SECTOR) > 0.8) {
     if (ac.handedOff) { markForRemoval(ac, 'handoff'); return; }
     if (ac.diverting) { markForRemoval(ac, 'diverted'); return; }
+    /* Once it belongs to the other position, its exit is their business. */
+    if (state.split.enabled && ac.sectorOwner !== state.sectorPos) {
+      markForRemoval(ac, 'othersector');
+      return;
+    }
     if (ac.nordo) {
       log('warn', ac.callsign + ' (NORDO) has left the sector on its last clearance.');
       markForRemoval(ac, 'nordo');
@@ -3248,7 +3253,7 @@ function lifecycleChecks(ac) {
   }
 
   /* Self-announce when a handoff is due. */
-  if (!ac.requestedHandoff && !ac.nordo && !ac.handedOff &&
+  if (!ac.requestedHandoff && !ac.nordo && !ac.handedOff && inMyBand(ac) &&
       (ac.kind === 'departure' || ac.kind === 'overflight')) {
     const edge = distToPolygon(ac.x, ac.y, SECTOR);
     const xf   = getFix(ac.exitFix);
@@ -9489,6 +9494,29 @@ function runSelfTests() {
     ac.assignedAlt = 12000;
     for (let i = 0; i < 60 * 60 * 12 && ac.sectorOwner !== 'low'; i++) stepSim(DT);
     if (ac.sectorOwner !== 'low') return 'never handed back down';
+    return true;
+  }));
+
+  check('an aircraft you transferred is no longer yours to bust', () => withSandbox(() => {
+    state.split = { enabled:true, alt:20000 };
+    state.sectorPos = 'low';
+    /* One you still own that leaves the side of the sector is your bust... */
+    const mine = testAircraft({ x:0, y:26, alt:12000, hdg:0, ias:300, tag:'m1' });
+    mine.kind = 'overflight'; mine.sectorOwner = 'low';
+    state.aircraft = [mine];
+    for (let i = 0; i < 60 * 60 * 15 && state.aircraft.length; i++) stepSim(DT);
+    if (state.score.busts !== 1) return 'your own aircraft leaving was not a bust';
+
+    /* ...but one the other position now owns is not. */
+    const theirs = testAircraft({ x:0, y:26, alt:26000, hdg:0, ias:300, tag:'m2' });
+    theirs.kind = 'overflight'; theirs.sectorOwner = 'high';
+    state.aircraft = [theirs];
+    const before = state.score.busts;
+    for (let i = 0; i < 60 * 60 * 15 && state.aircraft.length; i++) stepSim(DT);
+    if (state.aircraft.length) return 'the other sector’s aircraft never left';
+    if (state.score.busts !== before) return 'the other sector’s aircraft was charged to you';
+    const last = state.score.trafficLog[state.score.trafficLog.length - 1];
+    if (!last || last.outcome !== 'othersector') return 'not logged as the other sector’s';
     return true;
   }));
 

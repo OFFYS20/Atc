@@ -178,7 +178,7 @@ t=420  rwy 09
 
 ## Self-tests
 
-45 invariant checks run on load — angle wrapping, shortest-arc turns, turn and
+46 invariant checks run on load — angle wrapping, shortest-arc turns, turn and
 altitude capture stability, separation symmetry, the 5.0 NM / 1000 ft boundary case,
 pair-once conflict evaluation, alert hysteresis, accumulator conservation, hold entry
 classification, command-parser robustness, the approach envelope, removal sweeps and
