@@ -95,7 +95,12 @@ input[type=range]{padding:0;width:96px;accent-color:var(--accent)}
 .empty{padding:10px;color:var(--txt-dim);text-align:center;font-size:11px}
 
 /* ---------- scope ---------- */
-#scopeWrap{position:relative;min-width:0;background:#02060a;overflow:hidden}
+/* The centre column is a flex stack: banners, scope, optional profile. The
+   scope takes what is left, and min-height:0 is what stops the canvas from
+   growing past the window. */
+#scopeCol{display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden}
+#scopeWrap{position:relative;flex:1 1 auto;min-width:0;min-height:0;
+           background:#02060a;overflow:hidden}
 #scope{display:block;width:100%;height:100%;cursor:crosshair}
 .ovl{position:absolute;pointer-events:none;font-size:11px;color:var(--txt-dim);text-shadow:0 0 4px #000}
 #ovlTL{top:6px;left:8px;line-height:1.5}
@@ -181,6 +186,74 @@ li{margin:2px 0}
 .stat .n{font-size:21px;font-weight:700;color:#e6f2f7}
 .stat .l{font-size:10px;color:var(--txt-dim);text-transform:uppercase;letter-spacing:.06em}
 .vlist{max-height:180px;overflow:auto;font-size:11px;border:1px solid var(--line);border-radius:4px;padding:6px 8px}
+/* ---------- tabs ---------- */
+.tabs{display:flex;background:#0e1820;border-bottom:1px solid var(--line);flex:0 0 auto}
+.tabs button{
+  flex:1;border:none;border-radius:0;background:transparent;color:var(--txt-dim);
+  padding:5px 2px;font-size:10px;letter-spacing:.06em;border-bottom:2px solid transparent;
+}
+.tabs button.on{color:var(--accent);border-bottom-color:var(--accent);background:#101c24}
+.tabpane{display:none;flex:1 1 auto;min-height:0;overflow-y:auto}
+.tabpane.on{display:block}
+
+/* ---------- replay bar ---------- */
+#replaybar{
+  display:flex;align-items:center;gap:6px;padding:3px 8px;
+  background:#0a1016;border-bottom:1px solid var(--line);
+}
+#replaybar.hidden{display:none}
+#scrub{flex:1;accent-color:var(--amber)}
+#replaybar .lbl{min-width:58px}
+.rec{color:var(--red)}
+
+/* ---------- vertical profile ---------- */
+#profileWrap{
+  position:relative;height:140px;border-top:1px solid var(--line);background:#02060a;flex:0 0 auto;
+}
+#profileWrap.hidden{display:none}
+#profile{display:block;width:100%;height:100%}
+#profileLbl{position:absolute;top:3px;left:7px;font-size:10px;color:var(--txt-dim);pointer-events:none}
+
+/* ---------- misc panels ---------- */
+.mini{font-size:10px;color:var(--txt-dim);line-height:1.5}
+.chip{
+  display:inline-block;padding:1px 5px;margin:1px;border:1px solid var(--line-2);
+  border-radius:9px;font-size:10px;cursor:pointer;color:var(--txt-dim);
+}
+.chip.on{background:var(--accent-dim);border-color:var(--accent);color:#eaffee}
+.coordcard{border:1px solid #4a3a12;background:#1b1608;border-radius:4px;padding:5px 7px;margin:4px 0}
+.coordcard .r{display:flex;justify-content:space-between;align-items:center;gap:4px}
+.advisory{border-left:3px solid var(--amber);padding:3px 6px;margin:3px 0;background:#1d1708;font-size:11px}
+.advisory.red{border-left-color:var(--red);background:#20100e}
+#ctxmenu{
+  position:fixed;z-index:70;background:var(--panel);border:1px solid var(--line-2);
+  border-radius:4px;box-shadow:0 6px 24px #000a;padding:3px;min-width:150px;
+}
+#ctxmenu button{display:block;width:100%;text-align:left;border:none;background:transparent;padding:4px 8px}
+#ctxmenu button:hover{background:#182732}
+#ctxmenu .sep{height:1px;background:var(--line);margin:3px 0}
+#ctxmenu .hdr{padding:3px 8px;color:var(--accent);font-weight:700;font-size:11px}
+.banner{
+  padding:3px 8px;font-size:11px;text-align:center;letter-spacing:.05em;
+  border-bottom:1px solid var(--line);
+}
+.banner.warn{background:#2a2007;color:var(--amber)}
+.banner.bad{background:#2a0f0d;color:var(--red)}
+.banner.hidden{display:none}
+#logFilter{width:90px;font-size:10px;padding:1px 4px}
+table.an{border-collapse:collapse;width:100%;font-size:11px}
+table.an td{padding:1px 6px 1px 0;border-bottom:1px solid #12202a}
+table.an td:last-child{text-align:right;color:#e6f2f7}
+canvas.spark{display:block;width:100%;height:46px;background:#070f14;border:1px solid var(--line);border-radius:3px}
+.hint{color:var(--amber);font-size:10px}
+#seqBadge{
+  display:inline-block;min-width:15px;text-align:center;background:var(--accent-dim);
+  color:#eaffee;border-radius:3px;font-size:10px;padding:0 3px;margin-right:3px;
+}
+.strip.drag{opacity:.45}
+.strip.over{box-shadow:inset 0 2px 0 var(--accent)}
+.stripnote{color:var(--cyan);font-size:10px;font-style:italic}
+
 @media (max-width:1180px){
   #main{grid-template-columns:214px 1fr 232px}
   header{font-size:10px}
@@ -206,6 +279,7 @@ li{margin:2px 0}
   </div>
   <div class="grp">
     <span class="lbl">Rate</span>
+    <button class="spd" data-spd="0.5">&frac12;&times;</button>
     <button class="spd on" data-spd="1">1&times;</button>
     <button class="spd" data-spd="2">2&times;</button>
     <button class="spd" data-spd="4">4&times;</button>
@@ -228,6 +302,7 @@ li{margin:2px 0}
       <option value="windshift">Wind shift / runway change</option>
       <option value="flow">Flow control</option>
       <option value="coord">Sector coordination</option>
+      <option value="tutorial">Tutorial &mdash; guided</option>
     </select>
   </div>
   <div class="grp">
@@ -249,10 +324,22 @@ li{margin:2px 0}
   <div class="grp">
     <button id="btnReset" class="danger" title="Restart this scenario with the same seed">RESET</button>
     <button id="btnAudio" title="Alert tones (off by default)">&#128263; MUTED</button>
+    <button id="btnReplay" title="Open the replay scrubber (R)">&#9199; REPLAY</button>
     <button id="btnQuick" title="Quick start / command reference (F1)">? HELP</button>
     <button id="btnDiag" title="Self-test diagnostics">DIAG <span id="diagBadge"></span></button>
   </div>
 </header>
+
+<!-- ============================ REPLAY ============================ -->
+<div id="replaybar" class="hidden">
+  <span class="lbl">REPLAY</span>
+  <button id="btnRpBack" title="Back 10 seconds">&#9198;</button>
+  <button id="btnRpFwd" title="Forward 10 seconds">&#9197;</button>
+  <input type="range" id="scrub" min="0" max="100" step="1" value="100">
+  <span class="lbl" id="scrubT">00:00</span>
+  <button id="btnRpBranch" title="Carry on from here with a clean slate">TAKE OVER HERE</button>
+  <button id="btnRpLive" title="Return to the live picture">LIVE</button>
+</div>
 
 <!-- ============================ MAIN ============================ -->
 <div id="main">
@@ -266,7 +353,10 @@ li{margin:2px 0}
   </div>
 
   <!-- ---------------- radar scope ---------------- -->
-  <div id="scopeWrap">
+  <div id="scopeCol">
+   <div id="bannerRwy" class="banner warn hidden"></div>
+   <div id="bannerWx" class="banner bad hidden"></div>
+   <div id="scopeWrap">
     <canvas id="scope"></canvas>
     <div class="ovl" id="ovlTL"></div>
     <div class="ovl" id="ovlTR"></div>
@@ -276,21 +366,36 @@ li{margin:2px 0}
       <button id="btnZoomOut" title="Zoom out (wheel down)">&minus;</button>
       <button id="btnFit" title="Fit the whole sector">FIT</button>
       <button id="btnTrails" class="on" title="Toggle history trails">TRAILS</button>
-      <button id="btnVectors" class="on" title="Toggle 1-minute speed vectors">VECT</button>
+      <button id="btnVectors" class="on" title="Toggle speed vectors">VECT</button>
       <button id="btnMap" class="on" title="Toggle fixes / airways / centrelines">MAP</button>
     </div>
+   </div>
+   <div id="profileWrap" class="hidden">
+     <canvas id="profile"></canvas>
+     <div id="profileLbl"></div>
+   </div>
   </div>
 
   <!-- ---------------- control panel ---------------- -->
   <div class="col" id="side">
-    <div class="sec-title"><span>Selected aircraft</span><span id="selState"></span></div>
-    <div class="pblock">
-      <div id="selHdr">&mdash; no target &mdash;</div>
-      <div id="selSub">Click a target or a strip, or type its callsign.</div>
-      <div class="kv" id="selKv" style="margin-top:5px"></div>
+    <div class="tabs">
+      <button class="tab on" data-tab="tabControl">CONTROL</button>
+      <button class="tab" data-tab="tabDisplay">DISPLAY</button>
+      <button class="tab" data-tab="tabSector">SECTOR</button>
+      <button class="tab" data-tab="tabAnalysis">ANALYSIS</button>
     </div>
 
-    <div class="scroll" style="flex:1 1 auto">
+    <!-- ===== CONTROL ===== -->
+    <div class="tabpane on" id="tabControl">
+      <div class="pblock">
+        <div style="display:flex;justify-content:space-between;align-items:baseline">
+          <div id="selHdr">&mdash; no target &mdash;</div><span id="selState" class="lbl"></span>
+        </div>
+        <div id="selSub">Click a target or a strip, or type its callsign.</div>
+        <div class="kv" id="selKv" style="margin-top:5px"></div>
+        <div id="selHint" class="hint"></div>
+      </div>
+
       <div class="pblock">
         <div class="row"><span class="k">Heading</span>
           <input type="number" id="inHdg" min="0" max="360" step="5" placeholder="270">
@@ -303,16 +408,28 @@ li{margin:2px 0}
                  title="1-3 digits are a flight level, 4-5 digits are feet">
           <button id="btnClimb">&#9650; CLIMB</button>
           <button id="btnDesc">&#9660; DESC</button>
+          <button id="btnExp" title="Expedite the current level change">EXP</button>
+          <button id="btnPd" title="Descend or climb at pilot's discretion">PD</button>
+        </div>
+        <div class="row"><span class="k">Block</span>
+          <input type="number" id="inBlkLo" step="10" placeholder="080" title="Block base">
+          <input type="number" id="inBlkHi" step="10" placeholder="120" title="Block top">
+          <button id="btnBlk">ASSIGN BLOCK</button>
         </div>
         <div class="row"><span class="k">Speed</span>
           <input type="number" id="inSpd" min="0" max="400" step="10" placeholder="210">
-          <button id="btnSpd">ASSIGN</button>
+          <button id="btnSpd">SET</button>
+          <button id="btnSpdPlus" title="...or greater">+</button>
+          <button id="btnSpdMinus" title="...or less">&minus;</button>
           <button id="btnSpdN">RESUME</button>
         </div>
         <div class="row"><span class="k">Direct</span>
           <select id="selFix"></select>
           <button id="btnDct">DCT</button>
-          <button id="btnHold">HOLD</button>
+          <button id="btnWad" title="When able, direct">WHEN ABLE</button>
+        </div>
+        <div class="row"><span class="k">Hold</span>
+          <button id="btnHold">HOLD AT FIX</button>
           <button id="btnExitHold">EXIT HOLD</button>
         </div>
         <div class="row"><span class="k">Approach</span>
@@ -320,31 +437,213 @@ li{margin:2px 0}
           <button id="btnIls">CLR ILS</button>
           <button id="btnCancel">CANCEL</button>
         </div>
-        <div class="grid3" style="margin-top:5px">
+        <div class="row"><span class="k">Procedure</span>
+          <button id="btnDva" title="Descend via the published arrival">DESCEND VIA</button>
+          <button id="btnCva" title="Climb via the published departure">CLIMB VIA</button>
+          <button id="btnCanr" title="Cancel speed and altitude restrictions">CANCEL RESTR</button>
+        </div>
+        <div class="grid4" style="margin-top:5px">
           <button id="btnHo">HAND OFF</button>
+          <button id="btnQsy" title="Send it to the next frequency now">QSY</button>
           <button id="btnGa">GO AROUND</button>
+          <button id="btnUndo" title="Undo the last clearance (Ctrl+Z)">UNDO</button>
+        </div>
+        <div class="grid3" style="margin-top:4px">
+          <button id="btnSelPrev">&#8676; PREV</button>
           <button id="btnSelNext">NEXT &#8677;</button>
+          <button id="btnSelConflict" title="Jump to the aircraft in conflict (C)">CONFLICT</button>
         </div>
       </div>
 
       <div class="pblock">
-        <div class="lbl" style="margin-bottom:4px">Weather deviation request</div>
-        <div class="grid3">
-          <button id="btnDevL">APPR LEFT</button>
-          <button id="btnDevR">APPR RIGHT</button>
+        <div class="lbl" style="margin-bottom:4px">Weather deviation &amp; fuel</div>
+        <div class="grid4">
+          <button id="btnDevL">DEV L</button>
+          <button id="btnDevR">DEV R</button>
           <button id="btnDevN">DENY</button>
+          <button id="btnDump" title="Approve fuel dumping">DUMP</button>
         </div>
       </div>
 
       <div class="pblock">
         <div class="lbl" style="margin-bottom:4px"
              title="Applies to the selected aircraft, or a random one if nothing is selected">Emergency inject</div>
-        <div class="grid2">
-          <button id="btnEmgEng">ENGINE FAIL</button>
+        <div class="grid3">
+          <button id="btnEmgEng">ENGINE</button>
           <button id="btnEmgFuel">LOW FUEL</button>
           <button id="btnEmgMed">MEDICAL</button>
           <button id="btnEmgRad">RADIO FAIL</button>
+          <button id="btnEmgXpdr">XPDR FAIL</button>
+          <button id="btnEmgClear">CLEAR</button>
         </div>
+      </div>
+    </div>
+
+    <!-- ===== DISPLAY ===== -->
+    <div class="tabpane" id="tabDisplay">
+      <div class="pblock">
+        <div class="lbl">Data blocks</div>
+        <div class="row">
+          <span class="k">Detail</span>
+          <select id="selDeclutter">
+            <option value="full">Full</option>
+            <option value="limited">Limited</option>
+            <option value="symbol">Symbol only</option>
+          </select>
+          <button id="btnExpandBlock" title="Keep the selected block expanded">PIN EXPANDED</button>
+        </div>
+        <div class="row"><span class="k">Colour</span>
+          <select id="selColourMode">
+            <option value="kind">By traffic kind</option>
+            <option value="alt">By altitude band</option>
+            <option value="mono">Monochrome</option>
+          </select>
+          <label class="mini"><input type="checkbox" id="chkCb"> Colour-blind safe</label>
+        </div>
+        <div class="row"><span class="k">Dim H/O</span>
+          <label class="mini"><input type="checkbox" id="chkDimHo" checked> Dim handed-off traffic</label>
+        </div>
+      </div>
+      <div class="pblock">
+        <div class="lbl">Scope</div>
+        <div class="row"><span class="k">Vector</span>
+          <select id="selVector">
+            <option value="0">Off</option>
+            <option value="1" selected>1 min</option>
+            <option value="2">2 min</option>
+            <option value="4">4 min</option>
+          </select>
+          <span class="k">Trail</span>
+          <input type="range" id="rngTrail" min="0" max="20" step="1" value="7" style="width:70px">
+          <span id="trailVal" class="lbl">7</span>
+        </div>
+        <div class="row"><span class="k">Bright</span>
+          <input type="range" id="rngBright" min="40" max="150" step="5" value="100" style="width:70px">
+          <span id="brightVal" class="lbl">100%</span>
+          <span class="k">Scale</span>
+          <input type="range" id="rngUiScale" min="80" max="130" step="5" value="100" style="width:56px">
+        </div>
+        <div class="row"><span class="k">Rotate</span>
+          <label class="mini"><input type="checkbox" id="chkRotate"> Align to landing runway</label>
+        </div>
+        <div class="row"><span class="k">Filter</span>
+          <input type="number" id="inFiltLo" step="10" placeholder="000" style="width:52px" title="Lowest level shown">
+          <input type="number" id="inFiltHi" step="10" placeholder="450" style="width:52px" title="Highest level shown">
+          <button id="btnFiltClear">ALL</button>
+        </div>
+        <div class="row"><span class="k">Overlay</span>
+          <label class="mini"><input type="checkbox" id="chkHalo"> 5 NM halo</label>
+          <label class="mini"><input type="checkbox" id="chkMsa"> MSA grid</label>
+          <label class="mini"><input type="checkbox" id="chkGrid"> Lat/long</label>
+        </div>
+        <div class="row"><span class="k">Highlight</span>
+          <select id="selHighlight"><option value="">nothing</option></select>
+        </div>
+        <div class="grid3" style="margin-top:4px">
+          <button id="btnRbl" title="Range and bearing line: click two points">RANGE/BRG</button>
+          <button id="btnCpa" title="Closest point of approach between two aircraft">CPA</button>
+          <button id="btnProfile" title="Side elevation of the approach corridor">PROFILE</button>
+        </div>
+        <div class="grid3" style="margin-top:4px">
+          <button id="btnPng" title="Save the scope as a PNG">SAVE PNG</button>
+          <button id="btnFull" title="Full screen">FULL SCREEN</button>
+          <button id="btnClearTools">CLEAR TOOLS</button>
+        </div>
+        <div id="toolReadout" class="mini" style="margin-top:4px"></div>
+      </div>
+    </div>
+
+    <!-- ===== SECTOR ===== -->
+    <div class="tabpane" id="tabSector">
+      <div class="pblock">
+        <div class="lbl">Briefing</div>
+        <div class="kv" id="briefKv"></div>
+      </div>
+      <div class="pblock">
+        <div class="lbl">Coordination</div>
+        <div id="coordList" class="mini">Coordination is not active in this scenario.</div>
+      </div>
+      <div class="pblock">
+        <div class="lbl">Flow &amp; configuration</div>
+        <div class="row"><span class="k">MIT</span>
+          <select id="selMitFix"></select>
+          <input type="number" id="inMit" min="0" max="60" step="5" value="20" style="width:52px">
+          <button id="btnMit">IMPOSE</button>
+          <button id="btnMitClear">CLEAR</button>
+        </div>
+        <div class="row"><span class="k">Runway</span>
+          <select id="selNewRwy"></select>
+          <button id="btnRwyChange">CHANGE</button>
+          <span id="rwyStatus" class="lbl"></span>
+        </div>
+        <div id="mitList" class="mini"></div>
+      </div>
+      <div class="pblock">
+        <div class="lbl">Realism</div>
+        <div class="row">
+          <label class="mini"><input type="checkbox" id="chkPilot" checked> Crew response &amp; error</label>
+        </div>
+        <div class="row"><span class="k">Radar</span>
+          <select id="selRadar">
+            <option value="smooth">Smooth</option>
+            <option value="fast">4 s sweep</option>
+            <option value="slow">12 s sweep</option>
+          </select>
+          <label class="mini"><input type="checkbox" id="chkModeC"> Mode C garble</label>
+        </div>
+        <div class="row">
+          <label class="mini"><input type="checkbox" id="chkNotifyFix"> Call fix passage</label>
+          <label class="mini"><input type="checkbox" id="chkPauseConflict"> Pause on conflict</label>
+        </div>
+        <div class="row">
+          <label class="mini"><input type="checkbox" id="chkPauseArrival"> Pause on new arrival</label>
+          <label class="mini"><input type="checkbox" id="chkAdvisor"> Resolution advisor</label>
+        </div>
+        <div class="row">
+          <label class="mini"><input type="checkbox" id="chkHints"> Hint mode</label>
+          <label class="mini"><input type="checkbox" id="chkAuto"> AI controller</label>
+        </div>
+        <div class="row"><span class="k">Hot seat</span>
+          <select id="selHotSeat">
+            <option value="both">One controller (all traffic)</option>
+            <option value="arr">Arrivals position</option>
+            <option value="dep">Departures &amp; overflights</option>
+          </select>
+        </div>
+      </div>
+      <div class="pblock">
+        <div class="lbl">Scenario script</div>
+        <textarea id="scriptBox" rows="6" spellcheck="false"
+          style="width:100%;font-family:var(--mono);font-size:10px;resize:vertical"
+          placeholder="seed MYSEED&#10;rate 18&#10;t=0 spawn arrival TANGO 12000 AAL123&#10;t=180 emergency AAL123 engine"></textarea>
+        <div class="grid3" style="margin-top:4px">
+          <button id="btnScriptRun">RUN SCRIPT</button>
+          <button id="btnScriptCode">SESSION CODE</button>
+          <button id="btnScriptClear">CLEAR</button>
+        </div>
+        <div id="scriptMsg" class="mini"></div>
+      </div>
+    </div>
+
+    <!-- ===== ANALYSIS ===== -->
+    <div class="tabpane" id="tabAnalysis">
+      <div class="pblock">
+        <div class="lbl">Live advisories</div>
+        <div id="advisoryList" class="mini">No conflicts predicted.</div>
+      </div>
+      <div class="pblock">
+        <div class="lbl">Workload (commands per minute)</div>
+        <canvas class="spark" id="sparkWork"></canvas>
+        <div class="lbl" style="margin-top:6px">Conflict heat map</div>
+        <canvas class="spark" id="heatCanvas" style="height:110px"></canvas>
+      </div>
+      <div class="pblock">
+        <div class="lbl">Efficiency</div>
+        <table class="an" id="anTable"></table>
+      </div>
+      <div class="pblock">
+        <div class="lbl">Personal bests</div>
+        <table class="an" id="pbTable"></table>
       </div>
     </div>
 
@@ -357,7 +656,13 @@ li{margin:2px 0}
 
 <!-- ============================ FOOTER ============================ -->
 <footer>
-  <div class="sec-title"><span>Communications</span><span id="wxBanner"></span></div>
+  <div class="sec-title">
+    <span>Communications
+      <input type="text" id="logFilter" placeholder="filter..." autocomplete="off">
+      <button id="btnLogClear" style="font-size:10px;padding:0 4px">CLEAR</button>
+    </span>
+    <span id="wxBanner"></span>
+  </div>
   <div class="scroll" id="log"></div>
   <div id="cmdbar">
     <span class="prompt">&gt;</span>
@@ -376,50 +681,102 @@ li{margin:2px 0}
   <div class="fbody">
     <h3>Your job</h3>
     <ul>
-      <li><b>Arrivals</b> enter at an edge fix at cruise. Descend and sequence them, then clear them for an ILS. They must <b>land</b>.</li>
-      <li><b>Departures</b> start their roll on a runway. Climb them, route them to their exit fix, hand them off at or above FL100.</li>
+      <li><b>Arrivals</b> enter at an edge fix on a published arrival. Descend and sequence them, then clear an ILS. They must <b>land</b>.</li>
+      <li><b>Departures</b> start their roll on a runway. Climb them to the next sector's release level, route them to their exit fix, hand them off.</li>
       <li><b>Overflights</b> cross the sector. Keep them separated, hand them off near the boundary.</li>
       <li>An aircraft that crosses the boundary <b>without a handoff</b> is a sector bust.</li>
     </ul>
+
     <h3>Separation</h3>
     <ul>
       <li>Loss of separation = less than <b>5.0 NM</b> laterally <b>and</b> less than <b>1000 ft</b> vertically. Exactly 5.0 NM or exactly 1000 ft is legal.</li>
-      <li><span class="advline">Amber</span> = predicted conflict within 2 minutes on current vectors. <span class="alertline">Red</span> = actual loss of separation, right now.</li>
-      <li>Aircraft below 1000 ft above the field on final are exempt (tower's problem).</li>
+      <li>On final, <b>wake turbulence</b> spacing applies instead: up to 8 NM for a light behind a super. Low-visibility procedures add 2 NM more.</li>
+      <li><span class="advline">Amber</span> = predicted within 2 minutes. <span class="alertline">Red</span> = happening now. Below 1000 ft above the field on final is the tower's problem.</li>
     </ul>
+
     <h3>Command line</h3>
-    <p>Type <code>CALLSIGN</code> then one or more commands. With a target already selected the callsign is optional.
-       Several commands may be chained: <code>AAL123 D070 H270 S210</code>. Case does not matter.</p>
+    <p>Type <code>CALLSIGN</code> then one or more commands &mdash; <code>AAL123 D070 H270 S210</code>.
+       With a target selected the callsign is optional. <code>Tab</code> completes a partial callsign.
+       With several aircraft selected (Ctrl+click) one instruction goes to all of them.</p>
     <table class="cmds">
-      <tr><td>AAL123</td><td>select that aircraft (no command = just select)</td></tr>
-      <tr><td>H270 &nbsp; HDG 270</td><td>turn onto heading 270, shorter way round</td></tr>
-      <tr><td>HL270 &nbsp; HR270</td><td>turn <b>left</b> / <b>right</b> onto 270 (long way if you say so)</td></tr>
-      <tr><td>C070 &nbsp; C7000</td><td>climb: 1&ndash;3 digits = flight level, 4&ndash;5 digits = feet</td></tr>
-      <tr><td>D050</td><td>descend to FL050 (5000 ft)</td></tr>
-      <tr><td>A090</td><td>maintain FL090 &mdash; climb or descend as required</td></tr>
-      <tr><td>S210 &nbsp; SN</td><td>assign 210 kt IAS / resume normal speed</td></tr>
-      <tr><td>DCT ALPHA</td><td>proceed direct to a fix (prefixes work: <code>DCT AL</code>)</td></tr>
-      <tr><td>HOLD BRAVO</td><td>hold at a fix &mdash; right-hand racetrack, 1-minute legs, correct entry</td></tr>
-      <tr><td>XH</td><td>leave the hold and continue on the inbound course</td></tr>
-      <tr><td>ILS 27</td><td>cleared ILS approach runway 27 &mdash; refused with a reason if outside the capture envelope</td></tr>
-      <tr><td>CAN</td><td>cancel approach clearance, maintain present heading</td></tr>
-      <tr><td>GA</td><td>instruct go-around</td></tr>
-      <tr><td>DEV L &nbsp; DEV R &nbsp; DEV N</td><td>approve a weather deviation left / right, or deny it</td></tr>
-      <tr><td>HO</td><td>hand off to the next sector</td></tr>
-      <tr><td>?</td><td>open this panel</td></tr>
+      <tr><td>H270 &middot; HL270 &middot; HR270</td><td>heading, shorter way / forced left / forced right</td></tr>
+      <tr><td>C070 &middot; D050 &middot; A090</td><td>climb / descend / maintain (1&ndash;3 digits = flight level, 4&ndash;5 = feet)</td></tr>
+      <tr><td>C070X &middot; EXP</td><td>expedite the climb or descent</td></tr>
+      <tr><td>BLK080-120</td><td>maintain a block between two levels</td></tr>
+      <tr><td>PD</td><td>descend or climb at pilot's discretion</td></tr>
+      <tr><td>S210 &middot; S+210 &middot; S-210 &middot; SN</td><td>speed, or greater, or less, or resume normal</td></tr>
+      <tr><td>CANR</td><td>cancel all speed and altitude restrictions</td></tr>
+      <tr><td>DCT ALPHA &middot; WAD ALPHA</td><td>direct to a fix / when able, direct</td></tr>
+      <tr><td>HOLD BRAVO &middot; XH</td><td>right-hand racetrack with the correct entry / leave it</td></tr>
+      <tr><td>DVA &middot; CVA</td><td>descend via the arrival / climb via the departure</td></tr>
+      <tr><td>ILS 27 &middot; CAN &middot; GA</td><td>approach clearance / cancel it / go around</td></tr>
+      <tr><td>DEV L &middot; DEV R &middot; DEV N</td><td>answer a weather deviation request</td></tr>
+      <tr><td>DUMP</td><td>approve fuel dumping for an overweight emergency</td></tr>
+      <tr><td>REL120</td><td>ask the next sector for a lower release level (departures)</td></tr>
+      <tr><td>HO &middot; QSY</td><td>hand off / send it to the next frequency now</td></tr>
+      <tr><td>NOTE text</td><td>annotate the flight strip</td></tr>
+      <tr><td>UNDO</td><td>take back the last clearance (also Ctrl+Z)</td></tr>
     </table>
+
+    <h3>Sector instructions (not addressed to an aircraft)</h3>
+    <table class="cmds">
+      <tr><td>ACC 3 &middot; CTR 3 120 &middot; REJ 3</td><td>accept, counter-offer or refuse coordination offer #3</td></tr>
+      <tr><td>MIT BRAVO 20</td><td>impose 20 miles in trail over a fix (0 cancels)</td></tr>
+      <tr><td>RWY 09</td><td>turn the airport round to runway 09</td></tr>
+    </table>
+
+    <h3>The crews are not perfect</h3>
+    <p>A clearance is checked the instant you issue it &mdash; a refusal is immediate and says why.
+       Acting on it takes the crew a moment, and they may query it (&ldquo;say again&rdquo;),
+       read it back wrong, or decline. Watch the readback line in the CONTROL tab.
+       Turn this off with <b>Crew response &amp; error</b> on the SECTOR tab.</p>
+
     <h3>Approach gate</h3>
-    <p>An ILS clearance is only accepted when the aircraft is inside <b>12 NM</b> of the threshold,
-       within <b>&plusmn;30&deg;</b> of runway heading, within <b>35&deg;</b> of the extended centreline,
-       at or below the <b>3&deg; glideslope</b> and at <b>250 kt or less</b>. Otherwise the pilot tells you why not.
-       Unstable at 3 NM, or a runway still occupied at 2 NM, gets you a go-around.</p>
+    <p>An ILS clearance is only accepted inside <b>12 NM</b>, within <b>&plusmn;30&deg;</b> of runway heading,
+       within <b>35&deg;</b> of the extended centreline, at or below the <b>3&deg; glidepath</b> and at
+       <b>250 kt</b> or less. Unstable at 3 NM, a runway still occupied at 2 NM, or no visual contact at
+       the <b>200 ft</b> decision height gets you a go-around.</p>
+
     <h3>Mouse &amp; keyboard</h3>
     <ul>
-      <li>Click a target or a strip to select. Drag a <b>data block</b> to reposition it; double-click it to re-enable auto placement.</li>
+      <li>Click a target or strip to select &middot; <b>Ctrl+click</b> adds to a multi-selection &middot; <b>right-click</b> opens a menu.</li>
+      <li><b>Shift+drag</b> from a selected target to vector it &middot; <b>Shift+wheel</b> steps its level.</li>
+      <li>Drag a <b>data block</b> to reposition it; double-click it to re-enable auto placement.</li>
+      <li>Drag <b>arrival strips</b> into the order you intend to land them &mdash; you are scored against your own plan.</li>
       <li>Drag empty scope to pan, wheel to zoom, <code>FIT</code> to reset.</li>
-      <li><code>`</code> pause &middot; <code>Tab</code>/<code>Shift+Tab</code> next/previous target &middot; <code>Esc</code> deselect &middot; <code>&uarr;</code>/<code>&darr;</code> command history &middot; <code>F1</code> this panel.</li>
-      <li>With focus outside the command box: <code>Space</code> pause, <code>S</code> single-step, <code>1 2 4 8</code> simulation rate.</li>
+      <li><code>`</code> pause &middot; <code>Tab</code>/<code>Shift+Tab</code> next/previous &middot; <code>Esc</code> deselect &middot;
+          <code>&uarr;</code>/<code>&darr;</code> history &middot; <code>Ctrl+Z</code> undo &middot; <code>F1</code> this panel.</li>
+      <li>Focus off the command box: <code>Space</code> pause &middot; <code>S</code> step &middot;
+          <code>C</code> jump to the conflict &middot; <code>H</code> hints &middot; <code>R</code> replay &middot;
+          <code>1 2 4 8</code> rate.</li>
     </ul>
+
+    <h3>The four tabs</h3>
+    <ul>
+      <li><b>CONTROL</b> &mdash; the selected aircraft and every clearance as a button.</li>
+      <li><b>DISPLAY</b> &mdash; declutter, colour modes, altitude filter, halos, MSA grid, vector length,
+          scope rotation, brightness, range/bearing and CPA tools, vertical profile, PNG export.</li>
+      <li><b>SECTOR</b> &mdash; the briefing, coordination offers, flow restrictions, runway changes,
+          realism switches, the AI controller, hot-seat positions and the scenario script.</li>
+      <li><b>ANALYSIS</b> &mdash; live advisories with suggested resolutions, workload, a conflict heat map,
+          route efficiency and the fuel cost of your vectoring.</li>
+    </ul>
+
+    <h3>Replay</h3>
+    <p>The whole session is recorded as keyframes. Press <code>R</code> or <b>REPLAY</b> to scrub back,
+       watch a conflict develop, then <b>TAKE OVER HERE</b> to carry on from that moment against the
+       identical traffic. Each separation loss in the session summary has its own REPLAY button.</p>
+
+    <h3>Scenario scripts</h3>
+    <p>A session can be written as text and shared. On the SECTOR tab:</p>
+    <pre style="font-size:10px;color:#9fe8c0;margin:4px 0">seed RUSH-1
+rate 20
+wind 270/18
+t=0    spawn arrival TANGO 14000 AAL123
+t=180  emergency AAL123 engine
+t=300  mit BRAVO 20
+t=420  rwy 09
+t=600  weather 400 0.8</pre>
   </div>
 </div>
 
@@ -434,6 +791,8 @@ li{margin:2px 0}
   <div class="fbody"><div id="diagList"></div></div>
 </div>
 
+<div id="ctxmenu" class="hidden"></div>
+
 <!-- ============================ SUMMARY ============================ -->
 <div id="summary" class="hidden">
   <div id="summaryCard">
@@ -444,10 +803,15 @@ li{margin:2px 0}
     <div class="vlist" id="sumViol"></div>
     <h3>Traffic log</h3>
     <div class="vlist" id="sumTraffic"></div>
+    <h3>Efficiency</h3>
+    <table class="an" id="sumEff"></table>
     <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
       <button id="btnRestartSame">RESTART &mdash; SAME SEED</button>
       <button id="btnRestartNew">NEW SESSION &mdash; NEW SEED</button>
       <button id="btnSumClose">BACK TO SCOPE</button>
+      <button id="btnExportTxt">EXPORT REPORT</button>
+      <button id="btnExportCsv">EXPORT CSV</button>
+      <button id="btnSumCode">SESSION CODE</button>
     </div>
   </div>
 </div>
@@ -1113,7 +1477,9 @@ const SCENARIOS = {
                mit:{ BRAVO:18 } },
   coord:     { label:'Sector coordination',rate:12, mix:{arrival:0.50,departure:0.34,overflight:0.16},
                cells:0, emgChance:0.02, wind:{dirFrom:280,speed:12}, startArrivals:2,
-               coordination:true }
+               coordination:true },
+  tutorial:  { label:'Tutorial',            rate:0,  mix:{arrival:1.0,departure:0,overflight:0},
+               cells:0, emgChance:0, wind:{dirFrom:270,speed:8}, startArrivals:0 }
 };
 
 /* ============================================================================
@@ -1158,11 +1524,24 @@ const state = {
           crashes:0, delaySum:0, delayCount:0, violationLog:[], trafficLog:[],
           wxIgnored:0, emergenciesHandled:0, wakeViolations:0, procedureBusts:0,
           diversions:0, coordRejects:0, deliverySum:0, deliveryCount:0,
-          trackMilesFlown:0, trackMilesIdeal:0, heat:null },
+          trackMilesFlown:0, trackMilesIdeal:0, heat:null,
+          seqHonoured:0, seqTotal:0 },
 
   /* view */
-  view:{ cx:0, cy:2, pxPerNm:9 },
+  view:{ cx:0, cy:2, pxPerNm:9, rot:0 },
   showTrails:true, showVectors:true, showMap:true,
+  declutter:'full', colourMode:'kind', colourBlind:false, dimHandedOff:true,
+  vectorMinutes:1, trailLength:TRAIL_LENGTH, brightness:1, rotateScope:false,
+  filtLo:0, filtHi:60000, showHalo:false, showMsa:false, showGrid:false,
+  highlight:'', profileOpen:false,
+  tools:{ mode:null, rbl:null, cpa:[] }, hoverId:null,
+  logFilterText:'',
+  pauseOnConflict:false, pauseOnArrival:false,
+  advisor:false, hints:false, autoController:false, hotSeat:'both',
+  personalBests:[],          // in memory only, like everything else here
+  tutorial:null, lastScore:undefined,
+  sequence:[],               // the controller's intended landing order
+  aiPlans:null, aiTimer:0, aiSaid:0,
   audioEnabled:false, cmdHistory:[], cmdHistoryIdx:-1,
   lastLayoutMs:0, lastStripMs:0, lastToneMs:0
 };
@@ -1476,6 +1855,10 @@ function commitSpawn(ac) {
         ac.departureRwy + ', ' + (ac.procedure ? ac.procedure + ' departure' : 'via ' + ac.exitFix) +
         ', requesting ' + fmtAlt(ac.cruiseRequest) + '.');
   } else if (kind === 'arrival') {
+    if (state.pauseOnArrival) {
+      togglePause(true);
+      log('sys', 'Paused automatically: ' + ac.callsign + ' has checked in.');
+    }
     log('pilot', ac.callsign + ' with you over ' + ac.entryFix + ', ' + fmtAlt(ac.alt) +
         (ac.procedure ? ', on the ' + ac.procedure + ' arrival' : '') + '.');
   } else {
@@ -1932,6 +2315,17 @@ function touchdown(ac, rwy) {
   ac.hdg = ac.assignedHdg = rwy.hdg;
   ac.assignedIas = 0;
   state.score.landings++;
+  /* Did it land in the order the controller said it would? */
+  if (ac.seqNumber > 0) {
+    state.score.seqTotal++;
+    const jumped = state.aircraft.some(a =>
+      a !== ac && a.alive && a.kind === 'arrival' && a.phase !== 'rollout' &&
+      a.seqNumber > 0 && a.seqNumber < ac.seqNumber);
+    if (!jumped) state.score.seqHonoured++;
+    else log('warn', ac.callsign + ' landed out of your planned order (#' + ac.seqNumber + ').');
+  }
+  const si = state.sequence.indexOf(ac.id);
+  if (si >= 0) state.sequence.splice(si, 1);
   recordDelay(ac);
   recordDelivery(ac, rwy);
   if (ac.emergency) {
@@ -2417,7 +2811,6 @@ function recordDelay(ac) {
   const delay  = Math.max(0, actual - ac.idealSeconds);
   state.score.delaySum += delay;
   state.score.delayCount++;
-  state.score.trackMilesFlown += ac.trackMiles || 0;
   ac.finalDelay = delay;
 }
 
@@ -2438,6 +2831,9 @@ function sweepRemovals() {
   const doomed = new Set();
   for (const ac of state.removalQueue) {
     doomed.add(ac.id);
+    /* Every aircraft's miles count, however it left: the efficiency figure
+       must have the same population in its numerator and denominator. */
+    state.score.trackMilesFlown += ac.trackMiles || 0;
     state.score.trafficLog.push({
       callsign: ac.callsign, type: ac.type, kind: ac.kind,
       outcome: ac.removeReason, delay: ac.finalDelay || 0,
@@ -2671,6 +3067,7 @@ function detectConflicts() {
         rec.minVert = Math.min(rec.minVert, now.vert);
         if (!rec.logged) {
           rec.logged = true;
+          rec.at = state.simTime;
           state.score.violations++;
           state.score.violationLog.push(rec);
           log('err', 'SEPARATION LOST — ' + rec.csA + ' / ' + rec.csB + ' at ' +
@@ -2684,6 +3081,11 @@ function detectConflicts() {
         b.alertLevel = Math.max(b.alertLevel, level);
         rec.predT = pred.t;
         if (level === 2) violations++; else advisories++;
+      if (rec.level === 2 && !rec.paused && state.pauseOnConflict) {
+        rec.paused = true;
+        togglePause(true);
+        log('warn', 'Paused automatically: separation lost between ' + rec.csA + ' and ' + rec.csB + '.');
+      }
       }
     }
   }
@@ -3277,6 +3679,7 @@ function stepSim(dt) {
   updateCoordination(dt);
   updateRunwayChange(dt);
   runScript(dt);
+  runAiController(dt);
 
   /* Index-based loop: the array is never mutated inside it. */
   for (let i = 0; i < state.aircraft.length; i++) updateAircraft(state.aircraft[i], dt);
@@ -3702,6 +4105,12 @@ function applyToken(ac, tokens, i) {
     if (!next) return { consumed:1, ok:false, msg:'DEV needs L, R or N' };
     return Object.assign({ consumed:2 }, cmdDeviation(ac, next));
   }
+  if (t === 'NOTE') {
+    const text = tokens.slice(i + 1).join(' ');
+    ac.note = text;
+    return { consumed: tokens.length - i, ok:true,
+             msg: text ? ac.callsign + ' annotated: ' + text : ac.callsign + ' annotation cleared.' };
+  }
   if (t === 'HO' || t === 'HANDOFF') return Object.assign({ consumed:1 }, cmdHandoff(ac));
   if (t === 'QSY') return Object.assign({ consumed:1 }, cmdFrequencyChange(ac));
   if (t === 'DUMP') {
@@ -3932,16 +4341,37 @@ function resizeCanvas() {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
 
+/**
+ * The single world->screen transform. `view.rot` turns the scope so a chosen
+ * bearing points up the screen; it is applied to the world offset before the
+ * screen's y-flip, and inverted exactly in screenToWorld().
+ */
 function worldToScreen(x, y) {
   const v = state.view;
-  return { sx: cssW / 2 + (x - v.cx) * v.pxPerNm,
-           sy: cssH / 2 - (y - v.cy) * v.pxPerNm };
+  let dx = (x - v.cx) * v.pxPerNm;
+  let dy = (y - v.cy) * v.pxPerNm;
+  if (v.rot) {
+    const r = v.rot * DEG2RAD, c = Math.cos(r), sn = Math.sin(r);
+    const nx = dx * c - dy * sn;
+    dy = dx * sn + dy * c;
+    dx = nx;
+  }
+  return { sx: cssW / 2 + dx, sy: cssH / 2 - dy };
 }
 function screenToWorld(sx, sy) {
   const v = state.view;
-  return { x: v.cx + (sx - cssW / 2) / v.pxPerNm,
-           y: v.cy - (sy - cssH / 2) / v.pxPerNm };
+  let dx = sx - cssW / 2;
+  let dy = -(sy - cssH / 2);
+  if (v.rot) {
+    const r = -v.rot * DEG2RAD, c = Math.cos(r), sn = Math.sin(r);
+    const nx = dx * c - dy * sn;
+    dy = dx * sn + dy * c;
+    dx = nx;
+  }
+  return { x: v.cx + dx / v.pxPerNm, y: v.cy + dy / v.pxPerNm };
 }
+/** Compass bearing -> canvas rotation radians, honouring scope rotation. */
+function bearingToScreenRad(deg) { return compassToScreenRad(deg - state.view.rot); }
 function fitView() {
   state.view.cx = 0;
   state.view.cy = 1;
@@ -3975,7 +4405,7 @@ function drawRangeRings() {
   const rr = 40 * state.view.pxPerNm;
   if (rr > 60) {
     for (let deg = 0; deg < 360; deg += 10) {
-      const a = compassToScreenRad(deg);
+      const a = bearingToScreenRad(deg);
       const major = deg % 30 === 0;
       const inner = rr - (major ? 11 : 5);
       ctx.beginPath();
@@ -4129,22 +4559,65 @@ function drawWeather() {
 }
 
 /* --- aircraft ------------------------------------------------------------ */
+/* A deuteranopia-safe alternative: blue/orange/white rather than green/amber. */
+const CB = { ac:'#7fb8ff', acDep:'#ffd27f', acOvf:'#d9b3ff',
+             amber:'#ffb000', red:'#ff6d3d', magenta:'#ff8ae0' };
+
+function pal(key) { return state.colourBlind && CB[key] ? CB[key] : C[key]; }
+
+/** Colour bands when colouring by altitude. */
+const ALT_BANDS = [
+  { max: 6000,  c:'#5fd1c0', cb:'#9fd8ff' },
+  { max: 12000, c:'#43d17f', cb:'#7fb8ff' },
+  { max: 20000, c:'#c9d94f', cb:'#ffd27f' },
+  { max: 30000, c:'#e59a3c', cb:'#ffa15c' },
+  { max: 99000, c:'#d76fd0', cb:'#ff8ae0' }
+];
+
 function aircraftColour(ac) {
   if (ac.id === state.selectedId) return C.acSel;
-  if (ac.emergency)  return C.magenta;
-  if (ac.alertLevel === 2) return C.red;
-  if (ac.alertLevel === 1) return C.amber;
-  if (ac.kind === 'departure')  return C.acDep;
-  if (ac.kind === 'overflight') return C.acOvf;
-  return C.ac;
+  if (ac.alertLevel === 2) return pal('red');
+  if (ac.alertLevel === 1 || ac.wakeAlert) return pal('amber');
+  if (ac.emergency) return pal('magenta');
+  if (state.colourMode === 'mono') return pal('ac');
+  if (state.colourMode === 'alt') {
+    const band = ALT_BANDS.find(b => ac.alt <= b.max) || ALT_BANDS[ALT_BANDS.length - 1];
+    return state.colourBlind ? band.cb : band.c;
+  }
+  if (ac.kind === 'departure')  return pal('acDep');
+  if (ac.kind === 'overflight') return pal('acOvf');
+  return pal('ac');
+}
+
+/** Aircraft hidden by the altitude filter are not drawn at all. */
+function passesFilter(ac) {
+  return ac.alt >= state.filtLo && ac.alt <= state.filtHi;
+}
+
+/** True when this aircraft belongs to the position being worked. */
+function ownedByPosition(ac) {
+  if (state.hotSeat === 'both') return true;
+  return state.hotSeat === 'arr' ? ac.kind === 'arrival' : ac.kind !== 'arrival';
+}
+
+/** Aircraft the highlight selector is calling out. */
+function isHighlighted(ac) {
+  const h = state.highlight;
+  if (!h) return false;
+  if (ac.procedure === h) return true;
+  if (ac.route && ac.route.indexOf(h) >= 0) return true;
+  if (ac.entryFix === h || ac.exitFix === h) return true;
+  return false;
 }
 
 function drawTrails() {
-  if (!state.showTrails) return;
+  if (!state.showTrails || state.trailLength <= 0) return;
   ctx.save();
   ctx.fillStyle = C.trail;
   for (const ac of state.aircraft) {
-    for (let i = 0; i < ac.trail.length; i++) {
+    if (!passesFilter(ac)) continue;
+    const start = Math.max(0, ac.trail.length - state.trailLength);
+    for (let i = start; i < ac.trail.length; i++) {
       const p = ac.trail[i];
       const s = worldToScreen(p.x, p.y);
       const a = 0.18 + 0.62 * (i / Math.max(1, ac.trail.length - 1));
@@ -4159,26 +4632,57 @@ function drawTrails() {
 function drawAircraftSymbols() {
   ctx.save();
   for (const ac of state.aircraft) {
-    const s = worldToScreen(ac.x, ac.y);
+    if (!passesFilter(ac)) continue;
+    const d = displayPos(ac);                 // what the sweep last showed
+    const s = worldToScreen(d.x, d.y);
     const col = aircraftColour(ac);
     const sz = ac.perf.sym;
+    const faded = (state.dimHandedOff && ac.handedOff) || !ownedByPosition(ac);
+    ctx.globalAlpha = faded ? 0.38 : 1;
 
-    /* one-minute speed vector */
-    if (state.showVectors && ac.gs > 5) {
-      const v = vecFromHeading(ac.track || ac.hdg, ac.gs / 60);   // NM travelled in 1 min
-      const e = worldToScreen(ac.x + v.x, ac.y + v.y);
+    /* 5 NM separation halo */
+    if (state.showHalo) {
+      ctx.strokeStyle = col; ctx.globalAlpha = faded ? 0.12 : 0.22; ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(s.sx, s.sy, SEP_LATERAL_NM * state.view.pxPerNm, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.globalAlpha = faded ? 0.38 : 1;
+    }
+    if (isHighlighted(ac)) {
+      ctx.strokeStyle = C.cyan || '#49e0e0'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(s.sx, s.sy, sz + 12, 0, Math.PI * 2); ctx.stroke();
+    }
+
+    /* speed vector, length selectable in minutes */
+    if (state.showVectors && state.vectorMinutes > 0 && d.gs > 5) {
+      const v = vecFromHeading(d.track || ac.hdg, d.gs / 60 * state.vectorMinutes);
+      const e = worldToScreen(d.x + v.x, d.y + v.y);
       ctx.strokeStyle = col;
-      ctx.globalAlpha = 0.55;
+      ctx.globalAlpha = faded ? 0.2 : 0.55;
       ctx.lineWidth = 1;
       ctx.beginPath(); ctx.moveTo(s.sx, s.sy); ctx.lineTo(e.sx, e.sy); ctx.stroke();
+      ctx.globalAlpha = faded ? 0.38 : 1;
+    }
+
+    /* primary-only return: a bare slash, no symbol and no data block */
+    if (ac.xpdr === 'OFF') {
+      ctx.strokeStyle = col; ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.moveTo(s.sx - sz, s.sy + sz); ctx.lineTo(s.sx + sz, s.sy - sz);
+      ctx.stroke();
       ctx.globalAlpha = 1;
+      continue;
     }
 
     /* symbol: heavies get a filled square, mediums a square, lights a diamond */
     ctx.strokeStyle = col;
     ctx.fillStyle = col;
     ctx.lineWidth = 1.5;
-    if (ac.cls === 'light') {
+    if (ac.cls === 'super') {
+      ctx.fillRect(s.sx - sz / 2, s.sy - sz / 2, sz, sz);
+      ctx.strokeRect(s.sx - sz, s.sy - sz, sz * 2, sz * 2);
+      ctx.strokeRect(s.sx - sz - 2.5, s.sy - sz - 2.5, sz * 2 + 5, sz * 2 + 5);
+    } else if (ac.cls === 'light') {
       ctx.beginPath();
       ctx.moveTo(s.sx, s.sy - sz); ctx.lineTo(s.sx + sz, s.sy);
       ctx.lineTo(s.sx, s.sy + sz); ctx.lineTo(s.sx - sz, s.sy);
@@ -4206,18 +4710,165 @@ function drawAircraftSymbols() {
     }
     /* pending weather deviation request */
     if (ac.wxRequest && flash) {
-      ctx.fillStyle = C.amber;
+      ctx.fillStyle = pal('amber');
       ctx.font = 'bold 10px monospace';
       ctx.fillText('WX', s.sx - 20, s.sy + 4);
+    }
+    ctx.globalAlpha = 1;
+  }
+  ctx.restore();
+}
+
+/* --- overlays: MSA grid, lat/long graticule, route preview, tools --------- */
+
+/**
+ * Minimum safe altitude grid. Terrain is generated once from the seed so the
+ * same sector always has the same high ground.
+ */
+function msaAt(gx, gy) {
+  const n = Math.sin(gx * 12.9898 + gy * 78.233) * 43758.5453;
+  const f = n - Math.floor(n);
+  return 2000 + Math.round(f * 7) * 500;
+}
+
+function drawMsaGrid() {
+  if (!state.showMsa) return;
+  const step = 8;                                  // NM per MSA square
+  ctx.save();
+  ctx.font = '9px monospace';
+  for (let gx = -4; gx < 4; gx++) {
+    for (let gy = -4; gy < 4; gy++) {
+      const x0 = gx * step, y0 = gy * step;
+      const msa = msaAt(gx, gy);
+      const a = worldToScreen(x0, y0), b = worldToScreen(x0 + step, y0),
+            c2 = worldToScreen(x0 + step, y0 + step), d2 = worldToScreen(x0, y0 + step);
+      ctx.beginPath();
+      ctx.moveTo(a.sx, a.sy); ctx.lineTo(b.sx, b.sy);
+      ctx.lineTo(c2.sx, c2.sy); ctx.lineTo(d2.sx, d2.sy); ctx.closePath();
+      const t = clamp((msa - 2000) / 3500, 0, 1);
+      ctx.fillStyle = 'rgba(120,80,40,' + (0.05 + t * 0.20).toFixed(3) + ')';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(120,90,50,0.22)';
+      ctx.stroke();
+      if (state.view.pxPerNm > 6) {
+        const mid = worldToScreen(x0 + step / 2, y0 + step / 2);
+        ctx.fillStyle = 'rgba(200,160,110,0.6)';
+        ctx.fillText(String(Math.round(msa / 100)), mid.sx - 8, mid.sy + 3);
+      }
     }
   }
   ctx.restore();
 }
 
+function drawGraticule() {
+  if (!state.showGrid) return;
+  ctx.save();
+  ctx.strokeStyle = 'rgba(80,120,140,0.20)';
+  ctx.lineWidth = 1;
+  ctx.font = '9px monospace';
+  ctx.fillStyle = 'rgba(110,150,170,0.55)';
+  for (let n = -40; n <= 40; n += 10) {
+    const a = worldToScreen(n, -40), b = worldToScreen(n, 40);
+    ctx.beginPath(); ctx.moveTo(a.sx, a.sy); ctx.lineTo(b.sx, b.sy); ctx.stroke();
+    const c2 = worldToScreen(-40, n), d2 = worldToScreen(40, n);
+    ctx.beginPath(); ctx.moveTo(c2.sx, c2.sy); ctx.lineTo(d2.sx, d2.sy); ctx.stroke();
+    const lbl = worldToScreen(n, 0);
+    ctx.fillText((n >= 0 ? 'E' : 'W') + Math.abs(n), lbl.sx + 2, lbl.sy - 2);
+  }
+  ctx.restore();
+}
+
+/** The route of the hovered or selected aircraft, drawn ahead of it. */
+function drawRoutePreview() {
+  const id = state.hoverId != null ? state.hoverId : state.selectedId;
+  const ac = id == null ? null : state.aircraft.find(a => a.id === id);
+  if (!ac || !ac.route || ac.navMode === 'hdg') return;
+  ctx.save();
+  ctx.strokeStyle = 'rgba(90,200,230,0.55)';
+  ctx.setLineDash([4, 4]);
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  const s = worldToScreen(ac.x, ac.y);
+  ctx.moveTo(s.sx, s.sy);
+  for (let i = ac.routeIndex; i < ac.route.length; i++) {
+    const f = getFix(ac.route[i]);
+    if (!f) continue;
+    const q = worldToScreen(f.x, f.y);
+    ctx.lineTo(q.sx, q.sy);
+  }
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
+}
+
+/** Range-and-bearing line, and the closest-point-of-approach tool. */
+function drawTools() {
+  const t = state.tools;
+  ctx.save();
+  ctx.font = '10px monospace';
+  if (t.rbl && t.rbl.a) {
+    const a = worldToScreen(t.rbl.a.x, t.rbl.a.y);
+    const bw = t.rbl.b || screenToWorld(drag.lastX, drag.lastY);
+    const b = worldToScreen(bw.x, bw.y);
+    ctx.strokeStyle = C.cyan; ctx.lineWidth = 1.2;
+    ctx.setLineDash([6, 3]);
+    ctx.beginPath(); ctx.moveTo(a.sx, a.sy); ctx.lineTo(b.sx, b.sy); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = C.cyan;
+    for (const q of [a, b]) { ctx.fillRect(q.sx - 2.5, q.sy - 2.5, 5, 5); }
+    const d = dist(t.rbl.a.x, t.rbl.a.y, bw.x, bw.y);
+    const brg = bearingTo(t.rbl.a.x, t.rbl.a.y, bw.x, bw.y);
+    ctx.fillText(d.toFixed(1) + ' NM / ' + fmtHdg(brg), (a.sx + b.sx) / 2 + 5, (a.sy + b.sy) / 2 - 4);
+  }
+  if (t.cpa.length === 2) {
+    const a = state.aircraft.find(x => x.id === t.cpa[0]);
+    const b = state.aircraft.find(x => x.id === t.cpa[1]);
+    if (a && b) {
+      const sa = worldToScreen(a.x, a.y), sb = worldToScreen(b.x, b.y);
+      ctx.strokeStyle = C.cyan; ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.moveTo(sa.sx, sa.sy); ctx.lineTo(sb.sx, sb.sy); ctx.stroke();
+      const cpa = closestPointOfApproach(a, b);
+      ctx.fillStyle = C.cyan;
+      ctx.fillText('CPA ' + cpa.lat.toFixed(1) + ' NM / ' + Math.round(cpa.vert) + ' ft in ' +
+                   fmtMMSS(cpa.t), (sa.sx + sb.sx) / 2 + 5, (sa.sy + sb.sy) / 2 + 12);
+      if (cpa.t > 0) {
+        const pa = futurePosition(a, cpa.t), pb = futurePosition(b, cpa.t);
+        const qa = worldToScreen(pa.x, pa.y), qb = worldToScreen(pb.x, pb.y);
+        ctx.setLineDash([2, 3]);
+        ctx.beginPath(); ctx.moveTo(qa.sx, qa.sy); ctx.lineTo(qb.sx, qb.sy); ctx.stroke();
+        ctx.setLineDash([]);
+      }
+    }
+  }
+  ctx.restore();
+}
+
+function futurePosition(ac, t) {
+  const v = vecFromHeading(ac.track || ac.hdg, ac.gs / 3600);
+  return { x: ac.x + v.x * t, y: ac.y + v.y * t, alt: ac.alt + ac.vs / 60 * t };
+}
+
+/** Closest point of approach over the next 20 minutes, sampled each 5 s. */
+function closestPointOfApproach(a, b) {
+  let best = { t:0, lat:Infinity, vert:0 };
+  for (let t = 0; t <= 1200; t += 5) {
+    const pa = futurePosition(a, t), pb = futurePosition(b, t);
+    const lat = dist(pa.x, pa.y, pb.x, pb.y);
+    if (lat < best.lat) best = { t, lat, vert: Math.abs(pa.alt - pb.alt) };
+  }
+  return best;
+}
+
 /* --- data blocks --------------------------------------------------------- */
-const BLOCK_W = 94, BLOCK_H = 40;
+const BLOCK_W = 94, BLOCK_H = 40, BLOCK_LINE_H = 12;
+
+/** A block is as tall as it has lines — expanded blocks really are bigger. */
+function blockSize(ac) {
+  const n = blockLines(ac).length;
+  return { w: BLOCK_W, h: Math.max(16, n * BLOCK_LINE_H + 4) };
+}
 const BLOCK_DIRS  = [45, 135, 315, 225, 90, 270, 0, 180];   // preferred first
-const BLOCK_RADII = [52, 86];                               // short then long leader
+const BLOCK_RADII = [56, 84, 116];                          // short, long, longest leader
 
 /**
  * Candidate leader positions, preferred first: eight compass directions at a
@@ -4266,13 +4917,15 @@ function mapLabelObstacles() {
 
 function layoutDataBlocks() {
   const obstacles = mapLabelObstacles();
-  const items = state.aircraft.map(ac => {
-    const s = worldToScreen(ac.x, ac.y);
-    return { ac, sx: s.sx, sy: s.sy };
+  const items = state.aircraft.filter(a => passesFilter(a) && a.xpdr !== 'OFF').map(ac => {
+    const d = displayPos(ac);
+    const s = worldToScreen(d.x, d.y);
+    const sz = blockSize(ac);
+    return { ac, sx: s.sx, sy: s.sy, w: sz.w, h: sz.h };
   }).sort((p, q) => (p.ac.callsign < q.ac.callsign ? -1 : 1));
 
   const rectAt = (it, ox, oy) => ({
-    x: it.sx + ox - BLOCK_W / 2, y: it.sy + oy - BLOCK_H / 2, w: BLOCK_W, h: BLOCK_H
+    x: it.sx + ox - it.w / 2, y: it.sy + oy - it.h / 2, w: it.w, h: it.h
   });
   const current = items.map(it => {
     const o = blockOffset(it.ac);
@@ -4289,10 +4942,11 @@ function layoutDataBlocks() {
       c += overlapArea(rect, t) * 4;
     }
     for (let k = 0; k < obstacles.length; k++) c += overlapArea(rect, obstacles[k]) * 1.5;
-    if (rect.x < 2) c += (2 - rect.x) * 40;
-    if (rect.y < 2) c += (2 - rect.y) * 40;
-    if (rect.x + rect.w > cssW - 2) c += (rect.x + rect.w - cssW + 2) * 40;
-    if (rect.y + rect.h > cssH - 2) c += (rect.y + rect.h - cssH + 2) * 40;
+    /* Going off the edge is worse than overlapping: it loses the block entirely. */
+    if (rect.x < 2) c += (2 - rect.x) * 400;
+    if (rect.y < 2) c += (2 - rect.y) * 400;
+    if (rect.x + rect.w > cssW - 2) c += (rect.x + rect.w - cssW + 2) * 400;
+    if (rect.y + rect.h > cssH - 2) c += (rect.y + rect.h - cssH + 2) * 400;
     return c;
   };
 
@@ -4308,7 +4962,8 @@ function layoutDataBlocks() {
         const r = rectAt(items[i], BLOCK_SLOTS[d].ox, BLOCK_SLOTS[d].oy);
         /* Hysteresis: only move for a clear improvement, so blocks do not
            flicker between two near-equal choices frame to frame. */
-        const c = cost(r, i) + (d >= BLOCK_DIRS.length ? 300 : 0);   // prefer short leaders
+        /* Prefer the shortest leader that works: each extra ring costs. */
+        const c = cost(r, i) + Math.floor(d / BLOCK_DIRS.length) * 260;
         if (c < bestCost * 0.8) { bestCost = c; bestSlot = d; bestRect = r; }
       }
       if (bestSlot !== ac.blockDir) moved++;
@@ -4320,47 +4975,77 @@ function layoutDataBlocks() {
   for (let i = 0; i < items.length; i++) items[i].ac.blockRect = current[i];
 }
 
+/**
+ * Data block text. Respects the declutter setting, the Mode C readout (which
+ * may be missing or garbled) and whether the controller has pinned the block
+ * open for extra detail.
+ */
 function blockLines(ac) {
-  const l1 = ac.callsign + ' ' + ac.wake + (ac.emergency ? ' EMG' : '');
-  let trend = ' ';
-  if (ac.vs > 200) trend = '↑'; else if (ac.vs < -200) trend = '↓';
-  let l2 = fmtAlt(ac.alt).replace('FL', '') + trend;
-  if (Math.abs(ac.assignedAlt - ac.alt) > 60 && ac.navMode !== 'approach') {
-    l2 += fmtAlt(ac.assignedAlt).replace('FL', '');
-  } else {
-    l2 += '   ';
+  const d = displayPos(ac);
+  const l1 = ac.callsign + ' ' + ac.wake + (ac.emergency ? ' EMG' : '') +
+             (ac.seqNumber ? ' #' + ac.seqNumber : '');
+  if (state.declutter === 'limited' && !ac.blockExpanded && ac.id !== state.selectedId) {
+    return [l1];
   }
+
+  const mode = displayedAltitude(ac);
+  let trend = ' ';
+  if (d.vs > 200) trend = '↑'; else if (d.vs < -200) trend = '↓';
+  let shown;
+  if (!mode) shown = 'XXX';
+  else if (mode.garbled) shown = Math.sin(state.simTime * 9 + ac.id) > 0
+        ? fmtAlt(mode.alt).replace('FL', '') : '░░░';
+  else shown = fmtAlt(mode.alt).replace('FL', '');
+
+  let l2 = shown + trend;
+  if (ac.navMode === 'approach' && ac.approach.gsCaptured) l2 += 'G/S';
+  else if (ac.altBlock) l2 += 'BLK';
+  else if (Math.abs(ac.assignedAlt - ac.alt) > 60) l2 += fmtAlt(ac.assignedAlt).replace('FL', '');
+  else l2 += '   ';
+
   let tag = ac.type;
-  if (ac.navMode === 'approach') tag = 'ILS' + ac.approach.rwy;
-  else if (ac.navMode === 'hold') tag = 'HOLD';
-  else if (ac.phase === 'missed') tag = 'M/A';
-  else if (ac.navMode === 'fix')  tag = '>' + (ac.route[ac.routeIndex] || '');
-  const l3 = String(Math.round(ac.gs / 10)).padStart(2, '0') + '  ' + tag;
-  return [l1, l2, l3];
+  if (ac.handedOff)                    tag = 'H/O';
+  else if (ac.diverting)               tag = 'DIVERT';
+  else if (ac.navMode === 'approach')  tag = 'ILS' + ac.approach.rwy;
+  else if (ac.navMode === 'hold')      tag = 'HOLD';
+  else if (ac.phase === 'missed')      tag = 'M/A';
+  else if (ac.viaProcedure)            tag = ac.viaProcedure;
+  else if (ac.navMode === 'fix')       tag = '>' + (ac.route[ac.routeIndex] || '');
+  const l3 = String(Math.round(d.gs / 10)).padStart(2, '0') + '  ' + tag;
+
+  const lines = [l1, l2, l3];
+  if (ac.blockExpanded || ac.id === state.selectedId) {
+    lines.push(ac.type + ' ' + ac.perf.label.toLowerCase() + ' ' + Math.round(ac.fuelMinutes) + 'min');
+    if (ac.note) lines.push(ac.note);
+  }
+  return lines;
 }
 
 function drawDataBlocks() {
+  if (state.declutter === 'symbol') return;
   ctx.save();
   ctx.font = '11px monospace';
   ctx.textBaseline = 'top';
   for (const ac of state.aircraft) {
     const r = ac.blockRect;
-    if (!r) continue;
-    const s = worldToScreen(ac.x, ac.y);
-    const sel = ac.id === state.selectedId;
-    const col = ac.alertLevel === 2 ? C.red
-              : ac.alertLevel === 1 ? C.amber
-              : ac.emergency ? C.magenta
+    if (!r || !passesFilter(ac) || ac.xpdr === 'OFF') continue;
+    const d = displayPos(ac);
+    const s = worldToScreen(d.x, d.y);
+    const sel = ac.id === state.selectedId || state.multiSelect.has(ac.id);
+    const col = ac.alertLevel === 2 ? pal('red')
+              : (ac.alertLevel === 1 || ac.wakeAlert) ? pal('amber')
+              : ac.emergency ? pal('magenta')
               : sel ? C.blockSel : C.block;
+    ctx.globalAlpha = (state.dimHandedOff && ac.handedOff) || !ownedByPosition(ac) ? 0.4 : 1;
 
     /* leader line to the nearest point on the block */
     const tx = clamp(s.sx, r.x, r.x + r.w);
     const ty = clamp(s.sy, r.y, r.y + r.h);
     ctx.strokeStyle = col;
-    ctx.globalAlpha = 0.5;
+    ctx.globalAlpha *= 0.5;
     ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(s.sx, s.sy); ctx.lineTo(tx, ty); ctx.stroke();
-    ctx.globalAlpha = 1;
+    ctx.globalAlpha = (state.dimHandedOff && ac.handedOff) || !ownedByPosition(ac) ? 0.4 : 1;
 
     if (sel) {
       ctx.fillStyle = 'rgba(40,70,60,0.55)';
@@ -4370,13 +5055,12 @@ function drawDataBlocks() {
     }
     const lines = blockLines(ac);
     ctx.fillStyle = col;
-    ctx.fillText(lines[0], r.x + 2, r.y + 1);
-    ctx.fillText(lines[1], r.x + 2, r.y + 13);
-    ctx.fillText(lines[2], r.x + 2, r.y + 25);
+    for (let i = 0; i < lines.length; i++) ctx.fillText(lines[i], r.x + 2, r.y + 1 + i * 12);
     if (ac.blockPinned) {
       ctx.fillStyle = C.dim;
-      ctx.fillText('·', r.x + r.w - 7, r.y + 1);
+      ctx.fillText('\u00b7', r.x + r.w - 7, r.y + 1);
     }
+    ctx.globalAlpha = 1;
   }
   ctx.textBaseline = 'alphabetic';
   ctx.restore();
@@ -4408,13 +5092,24 @@ function render() {
   resizeCanvas();
   ctx.fillStyle = C.bg;
   ctx.fillRect(0, 0, cssW, cssH);
+
+  /* Scope rotation follows the landing runway when asked. */
+  state.view.rot = state.rotateScope
+    ? normalizeHeading((getRunway(state.activeArr) || { hdg:0 }).hdg) : 0;
+
+  ctx.save();
+  ctx.globalAlpha = clamp(state.brightness, 0.2, 1.5);
+  drawMsaGrid();
+  drawGraticule();
   drawRangeRings();
   drawSectorBoundary();
   if (state.showMap) { drawAirwaysAndFixes(); drawRunways(); }
   drawWeather();
   drawTrails();
+  drawRoutePreview();
   drawConflictLines();
   drawAircraftSymbols();
+  drawTools();
 
   const nowMs = performance.now();
   if (nowMs - state.lastLayoutMs > 220) {
@@ -4423,13 +5118,338 @@ function render() {
   } else {
     /* between layouts, keep blocks glued to their targets */
     for (const ac of state.aircraft) {
-      const s = worldToScreen(ac.x, ac.y);
+      const d = displayPos(ac);
+      const s = worldToScreen(d.x, d.y);
       const o = blockOffset(ac);
-      ac.blockRect = { x: s.sx + o.ox - BLOCK_W / 2, y: s.sy + o.oy - BLOCK_H / 2,
-                       w: BLOCK_W, h: BLOCK_H };
+      const sz = blockSize(ac);
+      ac.blockRect = { x: s.sx + o.ox - sz.w / 2, y: s.sy + o.oy - sz.h / 2,
+                       w: sz.w, h: sz.h };
     }
   }
   drawDataBlocks();
+  ctx.restore();
+  renderProfile();
+}
+
+/* ============================================================================
+ * SECTION 11b — VERTICAL PROFILE
+ * A side elevation of the approach corridor: distance to the threshold against
+ * altitude, with the glidepath drawn in. This is the picture flat radar hides.
+ * ========================================================================== */
+const profCanvas = document.getElementById('profile');
+const pctx = profCanvas.getContext('2d');
+
+function renderProfile() {
+  if (!state.profileOpen) return;
+  const dpr = window.devicePixelRatio || 1;
+  const rect = profCanvas.getBoundingClientRect();
+  const w = Math.max(80, Math.round(rect.width)), h = Math.max(60, Math.round(rect.height));
+  if (profCanvas.width !== Math.round(w * dpr) || profCanvas.height !== Math.round(h * dpr)) {
+    profCanvas.width = Math.round(w * dpr);
+    profCanvas.height = Math.round(h * dpr);
+  }
+  pctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  pctx.fillStyle = C.bg;
+  pctx.fillRect(0, 0, w, h);
+
+  const rwy = getRunway(state.activeArr);
+  if (!rwy) return;
+  const MAXD = 22, MAXA = 9000;
+  const px = d => 34 + (1 - d / MAXD) * (w - 44);        // threshold on the right
+  const py = a => h - 16 - (a - FIELD.elev) / MAXA * (h - 26);
+
+  pctx.font = '9px monospace'; pctx.lineWidth = 1;
+  for (let a = 0; a <= MAXA; a += 2000) {
+    const y = py(FIELD.elev + a);
+    pctx.strokeStyle = C.ring;
+    pctx.beginPath(); pctx.moveTo(30, y); pctx.lineTo(w - 6, y); pctx.stroke();
+    pctx.fillStyle = C.ringText;
+    pctx.fillText(String(Math.round((FIELD.elev + a) / 100)).padStart(3, '0'), 3, y + 3);
+  }
+  for (let d = 0; d <= MAXD; d += 5) {
+    const x = px(d);
+    pctx.strokeStyle = C.ring;
+    pctx.beginPath(); pctx.moveTo(x, 10); pctx.lineTo(x, h - 16); pctx.stroke();
+    pctx.fillStyle = C.ringText;
+    pctx.fillText(String(d), x - 4, h - 5);
+  }
+  /* the 3 degree glidepath and the decision height */
+  pctx.strokeStyle = C.cline; pctx.lineWidth = 1.4;
+  pctx.beginPath();
+  pctx.moveTo(px(0), py(FIELD.elev));
+  pctx.lineTo(px(MAXD), py(glideslopeAlt(MAXD)));
+  pctx.stroke();
+  pctx.strokeStyle = 'rgba(255,80,60,0.45)';
+  pctx.setLineDash([3, 3]);
+  const dh = py(FIELD.elev + CAT1_DH_AGL);
+  pctx.beginPath(); pctx.moveTo(30, dh); pctx.lineTo(w - 6, dh); pctx.stroke();
+  pctx.setLineDash([]);
+
+  let shown = 0;
+  pctx.font = '10px monospace';
+  for (const ac of state.aircraft) {
+    const g = runwayGeometry(ac, rwy);
+    if (g.along < -1 || g.along > MAXD || Math.abs(g.xtk) > 9) continue;
+    if (ac.alt > FIELD.elev + MAXA) continue;
+    shown++;
+    const x = px(g.along), y = py(ac.alt);
+    const col = aircraftColour(ac);
+    pctx.fillStyle = col; pctx.strokeStyle = col;
+    pctx.fillRect(x - 3, y - 3, 6, 6);
+    pctx.fillText(ac.callsign + ' ' + Math.round(ac.ias) + 'kt', x + 6, y + 3);
+    const gsAlt = glideslopeAlt(Math.max(g.along, 0));
+    if (Math.abs(ac.alt - gsAlt) > 200) {
+      pctx.globalAlpha = 0.5;
+      pctx.beginPath(); pctx.moveTo(x, y); pctx.lineTo(x, py(gsAlt)); pctx.stroke();
+      pctx.globalAlpha = 1;
+    }
+  }
+  $('profileLbl').textContent = 'APPROACH PROFILE RWY ' + rwy.id + '  \u00b7  ' + shown +
+    ' in the corridor  \u00b7  NM to threshold \u2192';
+}
+
+/* ============================================================================
+ * SECTION 11c — DECISION SUPPORT: ADVISOR, HINTS, AI CONTROLLER
+ * ========================================================================== */
+
+/* --- resolution advisor ---------------------------------------------------
+ * For every live conflict, propose something you could actually say. Optional:
+ * training wheels when you are learning the sector, a handicap when you are not.
+ * ------------------------------------------------------------------------ */
+function proposeResolution(a, b) {
+  const cpa = closestPointOfApproach(a, b);
+  const vertNow = Math.abs(a.alt - b.alt);
+
+  /* Cheapest fix first: if they are already splitting vertically, say so. */
+  const climbing = a.vs > 300 || b.vs > 300, descending = a.vs < -300 || b.vs < -300;
+  if (vertNow > 600 && (climbing || descending)) {
+    return { text: 'vertical split already opening — monitor', cost: 0, cmd: null };
+  }
+
+  /* A level change for whichever has the most room and the least to lose. */
+  const pick = (a.kind === 'arrival' && b.kind !== 'arrival') ? b
+             : (b.kind === 'arrival' && a.kind !== 'arrival') ? a
+             : (a.alt > b.alt ? a : b);
+  const other = pick === a ? b : a;
+  if (pick.navMode !== 'approach' && !pick.handedOff) {
+    const up = pick.alt >= other.alt;
+    const target = up ? Math.min(usableCeiling(pick), Math.round((other.alt + 2000) / 1000) * 1000)
+                      : Math.max(MVA_FT, Math.round((other.alt - 2000) / 1000) * 1000);
+    if (Math.abs(target - pick.alt) > 300) {
+      const verb = target > pick.alt ? 'C' : 'D';
+      return {
+        text: pick.callsign + ' ' + (verb === 'C' ? 'climb' : 'descend') + ' ' + fmtAlt(target),
+        cmd: pick.callsign + ' ' + verb + String(Math.round(target / 100)).padStart(3, '0'),
+        cost: 1
+      };
+    }
+  }
+
+  /* Otherwise turn the one that is not on final, behind the other's track. */
+  const turner = a.navMode === 'approach' ? b : a;
+  const stay   = turner === a ? b : a;
+  const brg = bearingTo(turner.x, turner.y, stay.x, stay.y);
+  const side = angleDiff(turner.hdg, brg) > 0 ? -1 : 1;      // turn away
+  const hdg = normalizeHeading(turner.hdg + side * 30);
+  return {
+    text: turner.callsign + ' turn ' + (side > 0 ? 'right' : 'left') + ' heading ' + fmtHdg(hdg) +
+          ' (CPA ' + cpa.lat.toFixed(1) + ' NM in ' + fmtMMSS(cpa.t) + ')',
+    cmd: turner.callsign + ' H' + fmtHdg(hdg),
+    cost: 2
+  };
+}
+
+function currentAdvisories() {
+  const out = [];
+  for (const rec of state.conflicts.values()) {
+    if (rec.level < 1) continue;
+    const a = state.aircraft.find(x => x.id === rec.idA);
+    const b = state.aircraft.find(x => x.id === rec.idB);
+    if (!a || !b) continue;
+    const sep = separation(a, b);
+    const cpa = closestPointOfApproach(a, b);
+    out.push({ rec, a, b, sep, cpa, fix: state.advisor ? proposeResolution(a, b) : null });
+  }
+  out.sort((p, q) => (q.rec.level - p.rec.level) || (p.cpa.t - q.cpa.t));
+  return out;
+}
+
+/* --- hint mode ------------------------------------------------------------
+ * The single next thing each aircraft needs from you. Deliberately blunt.
+ * ------------------------------------------------------------------------ */
+function hintFor(ac) {
+  if (!ac || ac.handedOff) return '';
+  if (ac.nordo) return 'NORDO — plan around it, it cannot hear you';
+  if (ac.wxRequest) return 'answer the weather deviation request';
+  if (ac.needsFuelDump && !ac.dumping) return 'approve fuel dumping (DUMP)';
+  if (ac.emergency === 'fuel') return 'priority to the field — ' + fmtMMSS(ac.emgDeadline - state.simTime) + ' left';
+  if (ac.phase === 'takeoff') return 'rolling — nothing needed yet';
+
+  if (ac.kind === 'arrival') {
+    const rwy = getRunway(state.activeArr);
+    if (ac.navMode === 'approach') return 'established — watch the spacing behind';
+    if (ac.diverting) return 'diverting, let it go';
+    if (!rwy) return '';
+    const g = runwayGeometry(ac, rwy);
+    const gsAlt = glideslopeAlt(Math.max(g.along, 0));
+    if (ac.alt > gsAlt + 4000 && g.along < 18) return 'high — descend it now or extend downwind';
+    if (ac.procedure && !ac.viaProcedure && ac.navMode === 'fix') return 'clear it to descend via ' + ac.procedure + ' (DVA)';
+    if (ac.ias > 250 && ac.alt < 14000) return 'slow it down (S250 or less)';
+    const env = approachEnvelope(ac, rwy);
+    if (env.ok) return 'in the envelope — clear the ILS ' + rwy.id;
+    if (Math.abs(g.xtk) > 2 && g.along < 16 && g.along > 2) return 'turn it onto the localiser';
+    if (ac.requestedVectors) return 'it needs a vector toward final';
+    return 'descend and position for the ' + rwy.id + ' final';
+  }
+  if (ac.kind === 'departure') {
+    const need = releaseAltFor(ac);
+    if (ac.alt < need - 50) return 'climb it to ' + fmtAlt(need) + ' for the handoff';
+    if (ac.navMode !== 'fix') return 'route it direct ' + (ac.exitFix || 'its exit fix');
+    return 'ready to hand off (HO)';
+  }
+  const edge = distToPolygon(ac.x, ac.y, SECTOR);
+  if (edge < HANDOFF_EDGE_NM) return 'ready to hand off (HO)';
+  return 'crossing — keep it separated';
+}
+
+/* --- AI controller --------------------------------------------------------
+ * Works the sector on your behalf: descends and sequences arrivals onto the
+ * landing runway, climbs and releases departures, hands off overflights.
+ * It only ever issues ordinary text commands, exactly as you would.
+ * ------------------------------------------------------------------------ */
+function aiPlanFor(ac) {
+  if (!state.aiPlans) state.aiPlans = new Map();
+  let p = state.aiPlans.get(ac.id);
+  if (!p) { p = { stage:0, held:0, dw:null }; state.aiPlans.set(ac.id, p); }
+  return p;
+}
+
+function aiHandoffReady(ac) {
+  const inside = pointInPolygon(ac.x, ac.y, SECTOR);
+  const edge = distToPolygon(ac.x, ac.y, SECTOR);
+  const xf = getFix(ac.exitFix);
+  return (xf && dist(ac.x, ac.y, xf.x, xf.y) < HANDOFF_FIX_NM) ||
+         (inside && edge < HANDOFF_EDGE_NM) || !inside;
+}
+
+function runAiController(dt) {
+  if (!state.autoController || state.ended) return;
+  state.aiTimer = (state.aiTimer || 0) - dt;
+  if (state.aiTimer > 0) return;
+  state.aiTimer = 3;
+
+  const rwy = getRunway(state.activeArr);
+  if (!rwy) return;
+  const gate = { x: rwy.thr.x - rwy.u.x * 10, y: rwy.thr.y - rwy.u.y * 10 };
+  const say = cmd => { state.aiSaid = (state.aiSaid || 0) + 1; executeCommandLine(cmd, { allowMulti:false }); };
+
+  /* Only one aircraft inside 9 NM on final at a time. */
+  const slotBusy = state.aircraft.some(a => a.navMode === 'approach' &&
+    runwayGeometry(a, getRunway(a.approach.rwy)).along < 9);
+
+  for (const ac of state.aircraft.slice()) {
+    if (!ac.alive || ac.nordo || ac.handedOff || ac.diverting) continue;
+    if (ac.phase === 'takeoff' || ac.phase === 'rollout') continue;
+    if (!ownedByPosition(ac)) continue;
+    if (ac.wxRequest) { say(ac.callsign + ' DEV ' + ac.wxRequest.side); continue; }
+    if (ac.needsFuelDump && !ac.dumping) { say(ac.callsign + ' DUMP'); continue; }
+
+    if (ac.kind === 'departure') {
+      const need = releaseAltFor(ac);
+      if (ac.assignedAlt < need) say(ac.callsign + ' C' + String(Math.round(need / 100)).padStart(3, '0'));
+      if (ac.navMode !== 'fix' && ac.exitFix) say(ac.callsign + ' DCT ' + ac.exitFix);
+      if (ac.alt >= need - 50 && aiHandoffReady(ac)) say(ac.callsign + ' HO');
+      continue;
+    }
+    if (ac.kind === 'overflight') {
+      if (aiHandoffReady(ac)) say(ac.callsign + ' HO');
+      continue;
+    }
+    if (ac.navMode === 'approach') continue;
+
+    /* ---- arrivals: steps down, then downwind, base, final ---- */
+    const p = aiPlanFor(ac);
+    const g = runwayGeometry(ac, rwy);
+    if (!p.dw) {
+      const side = g.xtk >= 0 ? 1 : -1;
+      p.dw = { x: rwy.thr.x - rwy.u.x * 17 + rwy.right.x * side * 8,
+               y: rwy.thr.y - rwy.u.y * 17 + rwy.right.y * side * 8 };
+      p.stage = g.along > 13 ? 1 : 0;
+    }
+    const d = dist(ac.x, ac.y, rwy.thr.x, rwy.thr.y);
+
+    /* stack arrivals 1000 ft apart on the way in */
+    const queue = state.aircraft
+      .filter(a => a.kind === 'arrival' && a.navMode !== 'approach' && a.alive)
+      .sort((x, y) => dist(x.x, x.y, 0, 0) - dist(y.x, y.y, 0, 0));
+    const idx = queue.findIndex(a => a.id === ac.id);
+    const floor = 3000 + Math.max(0, idx) * 1000;
+    const want = Math.max(floor, d > 24 ? 8000 : d > 17 ? 5000 : 3000);
+    if (want < ac.assignedAlt - 200) say(ac.callsign + ' D' + String(Math.round(want / 100)).padStart(3, '0'));
+    if (ac.assignedIas > 250) say(ac.callsign + ' S250');
+    if (d < 22 && ac.assignedIas > 210) say(ac.callsign + ' S210');
+    if (d < 14 && ac.assignedIas > 180) say(ac.callsign + ' S180');
+
+    if (p.stage === 0 && dist(ac.x, ac.y, p.dw.x, p.dw.y) < 3.5) p.stage = 1;
+    if (p.stage === 1 && g.along < 13 && Math.abs(g.xtk) < 2.2) p.stage = 2;
+
+    let h;
+    if (p.stage === 0)      h = bearingTo(ac.x, ac.y, p.dw.x, p.dw.y);
+    else if (p.stage === 1) h = bearingTo(ac.x, ac.y, gate.x, gate.y);
+    else                    h = normalizeHeading(rwy.hdg + clamp(-g.xtk * 22, -26, 26));
+    if (Math.abs(angleDiff(ac.assignedHdg, h)) > 4) {
+      say(ac.callsign + ' H' + String(Math.round(h)).padStart(3, '0'));
+    }
+
+    /* too high to intercept? take a lap */
+    if (p.stage >= 1 && g.along < 14 && ac.alt > glideslopeAlt(Math.max(g.along, 0)) + 900 &&
+        p.held < 2 && ac.navMode !== 'hold') {
+      say(ac.callsign + ' HOLD BRAVO'); p.held++;
+    }
+    if (ac.navMode === 'hold' && ac.alt <= 3200) { say(ac.callsign + ' XH'); p.stage = 0; }
+
+    if (!slotBusy && p.stage === 2 && approachEnvelope(ac, rwy).ok) {
+      say(ac.callsign + ' ILS ' + rwy.id);
+    }
+  }
+}
+
+/* --- analytics ------------------------------------------------------------ */
+function workloadSeries(bucketSeconds) {
+  const span = Math.max(60, state.simTime);
+  const n = Math.max(1, Math.ceil(span / bucketSeconds));
+  const out = new Array(n).fill(0);
+  for (const t of state.workload) {
+    const i = Math.min(n - 1, Math.floor(t / bucketSeconds));
+    out[i]++;
+  }
+  return out;
+}
+
+function efficiencyStats() {
+  const s = state.score;
+  /* Completed aircraft plus everything still airborne, so the live figure is
+     comparable with the direct-route total, which is counted at check-in. An
+     aircraft that has only just checked in has not had the chance to fly its
+     direct route yet, so discount the part still ahead of it. */
+  let flown = s.trackMilesFlown;
+  let ideal = s.trackMilesIdeal;
+  for (const a of state.aircraft) {
+    flown += a.trackMiles || 0;
+    const done = Math.min(1, (a.trackMiles || 0) / Math.max(1, a.idealMiles || 1));
+    ideal -= (a.idealMiles || 0) * (1 - done);
+  }
+  ideal = Math.max(0, ideal);
+  const extra = Math.max(0, flown - ideal);
+  /* A rough but consistent fuel proxy: one extra track mile costs fuel. */
+  const fuelKg = Math.max(0, extra) * 11;
+  return {
+    flown, ideal, extra,
+    efficiency: ideal > 0 ? clamp(ideal / Math.max(flown, 1), 0, 1) : 1,
+    fuelKg,
+    delivery: s.deliveryCount ? s.deliverySum / s.deliveryCount : 0,
+    avgDelay: avgDelay()
+  };
 }
 
 /* ============================================================================
@@ -4451,6 +5471,10 @@ function log(kind, text) {
   if (logSuppressed) return;                  // self-tests run silently
   const d = document.createElement('div');
   d.className = 'm-' + kind;
+  d.setAttribute('data-text', (kind + ' ' + text).toLowerCase());
+  if (state.logFilterText && (kind + ' ' + text).toLowerCase().indexOf(state.logFilterText) < 0) {
+    d.style.display = 'none';
+  }
   const t = document.createElement('span');
   t.className = 't';
   t.textContent = fmtClock(state.simTime) + '  ';
@@ -4522,14 +5546,18 @@ function buildStripNode(ac) {
   const root = document.createElement('div');
   root.className = 'strip';
   root.setAttribute('data-id', String(ac.id));
+  root.setAttribute('draggable', 'true');
   root.innerHTML =
-    '<div class="r1"><span class="f-cs"></span><span class="f-ty"></span></div>' +
+    '<div class="r1"><span><span class="f-seq"></span><span class="f-cs"></span></span>' +
+      '<span class="f-ty"></span></div>' +
     '<div class="r2"><span><span class="f-a1"></span><span class="asg f-a2"></span></span>' +
     '<span><span class="f-s1"></span><span class="asg f-s2"></span></span></div>' +
-    '<div class="r3"><span class="f-tgt"></span><span class="f-note"></span></div>';
+    '<div class="r3"><span class="f-tgt"></span><span class="f-note"></span></div>' +
+    '<div class="f-extra stripnote"></div>';
   const q = sel => root.querySelector(sel);
   return { root, cs:q('.f-cs'), ty:q('.f-ty'), a1:q('.f-a1'), a2:q('.f-a2'),
-           s1:q('.f-s1'), s2:q('.f-s2'), tgt:q('.f-tgt'), note:q('.f-note'), cls:'' };
+           s1:q('.f-s1'), s2:q('.f-s2'), tgt:q('.f-tgt'), note:q('.f-note'),
+           seq:q('.f-seq'), extra:q('.f-extra'), cls:'' };
 }
 
 /** Assign only when the value actually changed — keeps layout work minimal. */
@@ -4537,13 +5565,19 @@ function setText(node, text) { if (node.__t !== text) { node.__t = text; node.te
 
 function refreshStripNode(n, ac) {
   const kindC = ac.kind === 'arrival' ? 'arr' : ac.kind === 'departure' ? 'dep' : 'ovf';
-  const cls = 'strip ' + kindC + (ac.id === state.selectedId ? ' sel' : '') +
-              (ac.alertLevel === 2 ? ' alert' : '') + (ac.emergency ? ' emg' : '');
+  const cls = 'strip ' + kindC +
+              (ac.id === state.selectedId || state.multiSelect.has(ac.id) ? ' sel' : '') +
+              (ac.alertLevel === 2 || ac.wakeAlert ? ' alert' : '') +
+              (ac.emergency ? ' emg' : '');
   if (n.cls !== cls) { n.cls = cls; n.root.className = cls; }
+  n.root.style.opacity = ownedByPosition(ac) ? '' : '0.45';
 
   let target;
-  if (ac.navMode === 'approach')   target = 'ILS ' + ac.approach.rwy;
+  if (ac.handedOff)                target = 'HANDED OFF';
+  else if (ac.diverting)           target = 'DIVERTING';
+  else if (ac.navMode === 'approach') target = 'ILS ' + ac.approach.rwy;
   else if (ac.navMode === 'hold')  target = 'HOLD ' + ac.hold.fix;
+  else if (ac.viaProcedure)        target = 'VIA ' + ac.viaProcedure;
   else if (ac.navMode === 'fix')   target = '→ ' + (ac.route[ac.routeIndex] || '?');
   else if (ac.phase === 'takeoff') target = 'RWY ' + ac.departureRwy;
   else if (ac.phase === 'rollout') target = 'LANDED';
@@ -4554,8 +5588,12 @@ function refreshStripNode(n, ac) {
   if (ac.emergency === 'fuel')  { note = 'FUEL ' + fmtMMSS(ac.emgDeadline - state.simTime); noteCls = 'bad'; }
   else if (ac.emergency)        { note = ac.emergency.toUpperCase(); noteCls = 'bad'; }
   else if (ac.wxRequest)        { note = 'WX REQ ' + ac.wxRequest.side; noteCls = 'warn'; }
+  else if (ac.needsFuelDump && !ac.dumping) { note = 'DUMP?'; noteCls = 'warn'; }
+  else if (ac.dumping)          { note = 'DUMPING'; noteCls = 'warn'; }
+  else if (ac.pendingQuery)     { note = 'SAY AGAIN'; noteCls = 'warn'; }
   else if (ac.requestedHandoff) { note = 'H/O DUE'; noteCls = 'warn'; }
   else if (ac.requestedVectors && ac.navMode === 'hdg') { note = 'VECTORS?'; noteCls = 'warn'; }
+  else if (ac.fuelMinutes < 20) { note = Math.round(ac.fuelMinutes) + 'min FOB'; noteCls = 'warn'; }
   else {
     note = (ac.kind === 'arrival'   ? 'ARR ' + (ac.entryFix || '')
           : ac.kind === 'departure' ? 'DEP ' + (ac.exitFix  || '')
@@ -4563,16 +5601,29 @@ function refreshStripNode(n, ac) {
     noteCls = 'tag';
   }
 
+  const mode = displayedAltitude(ac);
+  setText(n.seq, ac.seqNumber ? String(ac.seqNumber) + ' ' : '');
+  if (n.seq.className !== (ac.seqNumber ? 'f-seq' : 'f-seq')) n.seq.className = 'f-seq';
+  n.seq.style.cssText = ac.seqNumber
+    ? 'display:inline-block;min-width:15px;text-align:center;background:var(--accent-dim);color:#eaffee;border-radius:3px;font-size:10px;padding:0 3px;margin-right:3px'
+    : 'display:none';
   setText(n.cs, ac.callsign);
   setText(n.ty, ac.type + '/' + ac.wake);
-  setText(n.a1, fmtAlt(ac.alt) + ' ' + (ac.vs > 200 ? '↑' : ac.vs < -200 ? '↓' : '→') + ' ');
+  setText(n.a1, (mode ? fmtAlt(mode.alt) : 'XXX') + ' ' +
+                (ac.vs > 200 ? '↑' : ac.vs < -200 ? '↓' : '→') + ' ');
   setText(n.a2, (ac.navMode === 'approach' && ac.approach.gsCaptured)
-                ? 'G/S' : fmtAlt(ac.assignedAlt));
+                ? 'G/S' : ac.altBlock ? fmtAlt(ac.altBlock.lo) + '-' + fmtAlt(ac.altBlock.hi)
+                : fmtAlt(ac.assignedAlt));
   setText(n.s1, Math.round(ac.ias) + ' ');
-  setText(n.s2, Math.round(ac.assignedIas) + ' kt');
+  setText(n.s2, Math.round(ac.assignedIas) + (ac.speedQualifier || '') + ' kt');
   setText(n.tgt, target);
   setText(n.note, note);
-  if (n.note.className !== noteCls) n.note.className = 'f-note ' + noteCls;
+  if (n.note.className !== 'f-note ' + noteCls) n.note.className = 'f-note ' + noteCls;
+
+  const extra = state.hints ? hintFor(ac) : (ac.note || '');
+  setText(n.extra, extra);
+  n.extra.className = state.hints && !ac.note ? 'f-extra hint' : 'f-extra stripnote';
+  n.extra.style.display = extra ? '' : 'none';
 }
 
 /** Reconcile one bay's children against `list`, moving nodes only when needed. */
@@ -4606,8 +5657,23 @@ function updateStrips(force) {
 
   const arr = [], dep = [];
   for (const ac of state.aircraft) (ac.kind === 'arrival' ? arr : dep).push(ac);
-  /* Arrivals sorted by distance to the field, departures by callsign. */
-  arr.sort((a, b) => dist(a.x, a.y, FIELD.x, FIELD.y) - dist(b.x, b.y, FIELD.x, FIELD.y));
+
+  /* The controller's intended landing order, if they have set one, otherwise
+     by distance to the field. Sequence numbers are derived from it. */
+  const plan = state.sequence.filter(id => arr.some(a => a.id === id));
+  state.sequence = plan;
+  arr.sort((a, b) => {
+    const ia = plan.indexOf(a.id), ib = plan.indexOf(b.id);
+    if (ia >= 0 && ib >= 0) return ia - ib;
+    if (ia >= 0) return -1;
+    if (ib >= 0) return 1;
+    return dist(a.x, a.y, FIELD.x, FIELD.y) - dist(b.x, b.y, FIELD.x, FIELD.y);
+  });
+  for (const a of arr) a.seqNumber = 0;
+  plan.forEach((id, i) => {
+    const a = arr.find(x => x.id === id);
+    if (a) a.seqNumber = i + 1;
+  });
   dep.sort((a, b) => (a.callsign < b.callsign ? -1 : 1));
 
   syncBay(el.bayArr, arr, 'no arrivals');
@@ -4615,7 +5681,6 @@ function updateStrips(force) {
   el.cntArr.textContent = arr.length;
   el.cntDep.textContent = dep.length;
 
-  /* Drop cached nodes for aircraft that have left the sector. */
   if (stripNodes.size > state.aircraft.length) {
     const live = new Set(state.aircraft.map(a => a.id));
     for (const id of Array.from(stripNodes.keys())) if (!live.has(id)) stripNodes.delete(id);
@@ -4634,47 +5699,66 @@ function onStripClick(ev) {
 function updateSidePanel() {
   const ac = selectedAircraft();
   if (!ac) {
-    el.selHdr.textContent = '— no target —';
-    el.selSub.textContent = 'Click a target or a strip, or type its callsign.';
+    el.selHdr.textContent = '\u2014 no target \u2014';
+    el.selSub.textContent = state.multiSelect.size > 1
+      ? state.multiSelect.size + ' aircraft selected \u2014 commands go to all of them'
+      : 'Click a target or a strip, or type its callsign.';
     el.selKv.innerHTML = '';
     el.selState.textContent = '';
+    $('selHint').textContent = '';
     return;
   }
-  el.selHdr.textContent = ac.callsign;
-  el.selSub.textContent = ac.type + ' · ' + ac.perf.label + ' · wake ' + ac.wake +
-                          ' · ' + ac.kind;
-  el.selState.textContent = ac.phase.toUpperCase();
+  el.selHdr.textContent = ac.callsign + (state.multiSelect.size > 1
+      ? '  +' + (state.multiSelect.size - 1) : '');
+  el.selSub.textContent = ac.type + ' \u00b7 ' + ac.perf.label + ' \u00b7 wake ' + ac.wake +
+                          ' \u00b7 ' + ac.kind + ' \u00b7 crew ' + ac.pilot.label;
+  el.selState.textContent = (ac.handedOff ? 'HANDED OFF' : ac.phase).toUpperCase();
 
   const brg = bearingTo(FIELD.x, FIELD.y, ac.x, ac.y);
   const d   = dist(FIELD.x, FIELD.y, ac.x, ac.y);
   let nav;
   if (ac.navMode === 'approach') nav = 'ILS ' + ac.approach.rwy +
-        (ac.approach.locCaptured ? ' · LOC' : '') + (ac.approach.gsCaptured ? '+GS' : '');
-  else if (ac.navMode === 'hold') nav = 'HOLD ' + ac.hold.fix + ' · ' +
+        (ac.approach.locCaptured ? ' \u00b7 LOC' : '') + (ac.approach.gsCaptured ? '+GS' : '');
+  else if (ac.navMode === 'hold') nav = 'HOLD ' + ac.hold.fix + ' \u00b7 ' +
         ac.hold.phase + (ac.hold.entry ? ' (' + ac.hold.entry + ')' : '');
   else if (ac.navMode === 'fix')  nav = 'DCT ' + (ac.route[ac.routeIndex] || '?');
   else nav = 'HDG ' + fmtHdg(ac.assignedHdg) + (ac.turnDir ? ' (' + ac.turnDir + ')' : '');
+  if (ac.viaProcedure) nav += ' \u00b7 via ' + ac.viaProcedure;
 
   const rows = [
-    ['Position',  fmtHdg(brg) + '° / ' + d.toFixed(1) + ' NM ' + FIELD.name],
-    ['Altitude',  Math.round(ac.alt) + ' ft  → ' + Math.round(ac.assignedAlt) + ' ft'],
+    ['Position',  fmtHdg(brg) + '\u00b0 / ' + d.toFixed(1) + ' NM ' + FIELD.name],
+    ['Altitude',  Math.round(ac.alt) + ' ft  \u2192 ' +
+                  (ac.altBlock ? fmtAlt(ac.altBlock.lo) + '-' + fmtAlt(ac.altBlock.hi)
+                               : Math.round(ac.assignedAlt) + ' ft') +
+                  (ac.expedite ? ' (exp)' : '') + (ac.pilotDiscretion ? ' (PD)' : '')],
     ['V/S',       (ac.vs >= 0 ? '+' : '') + Math.round(ac.vs) + ' fpm'],
-    ['Heading',   fmtHdg(ac.hdg) + '°  → ' + fmtHdg(ac.assignedHdg) + '°'],
-    ['Track',     fmtHdg(ac.track) + '°'],
-    ['IAS / GS',  Math.round(ac.ias) + ' → ' + Math.round(ac.assignedIas) + ' / ' +
-                  Math.round(ac.gs) + ' kt'],
+    ['Ceiling',   fmtAlt(usableCeiling(ac)) + ' at today\u2019s weight'],
+    ['Heading',   fmtHdg(ac.hdg) + '\u00b0  \u2192 ' + fmtHdg(ac.assignedHdg) + '\u00b0'],
+    ['Track',     fmtHdg(ac.track) + '\u00b0'],
+    ['IAS / GS',  Math.round(ac.ias) + ' \u2192 ' + Math.round(ac.assignedIas) +
+                  (ac.speedQualifier || '') + ' / ' + Math.round(ac.gs) + ' kt'],
     ['Nav',       nav],
-    ['Plan',      (ac.entryFix ? ac.entryFix : 'RWY ' + (ac.departureRwy || '-')) + ' → ' +
-                  (ac.kind === 'arrival' ? FIELD.name : (ac.exitFix || '?'))],
+    ['Squawk',    String(ac.squawk) + ' \u00b7 Mode ' + ac.xpdr],
+    ['Fuel',      Math.round(ac.fuelMinutes) + ' min' + (ac.dumping ? ' (dumping)' : '')],
+    ['Plan',      (ac.entryFix ? ac.entryFix : 'RWY ' + (ac.departureRwy || '-')) + ' \u2192 ' +
+                  (ac.kind === 'arrival' ? FIELD.name : (ac.exitFix || '?')) +
+                  (ac.procedure ? ' (' + ac.procedure + ')' : '')],
+    ['Track miles', ac.trackMiles.toFixed(1) + ' flown / ' + Math.round(ac.idealMiles) + ' direct'],
     ['Time',      fmtMMSS(state.simTime - ac.spawnTime) + ' in sector']
   ];
+  if (ac.kind === 'departure') rows.push(['Release', fmtAlt(releaseAltFor(ac))]);
   if (ac.emergency) {
     rows.push(['EMERGENCY', ac.emergency.toUpperCase() +
-      (ac.emgDeadline > 0 ? ' · ' + fmtMMSS(ac.emgDeadline - state.simTime) + ' left' : '')]);
+      (ac.emgDeadline > 0 ? ' \u00b7 ' + fmtMMSS(ac.emgDeadline - state.simTime) + ' left' : '')]);
+  }
+  if (ac.pending.length) rows.push(['Awaiting', ac.pending.length + ' clearance(s) not yet actioned']);
+  if (ac.lastGarble && state.simTime - ac.lastGarble.at < 40) {
+    rows.push(['READBACK', ac.lastGarble.text]);
   }
   if (ac.wxRequest) rows.push(['Request', 'deviation ' + (ac.wxRequest.side === 'L' ? 'left' : 'right')]);
   el.selKv.innerHTML = rows.map(r =>
     '<div class="k2">' + r[0] + '</div><div class="v2">' + r[1] + '</div>').join('');
+  $('selHint').textContent = state.hints ? hintFor(ac) : '';
 }
 
 /* --- scoreboard ---------------------------------------------------------- */
@@ -4685,8 +5769,10 @@ function updateScore() {
   const s = state.score;
   const rows = [
     ['Handed off', s.handoffs], ['Landed', s.landings],
-    ['Separation losses', s.violations], ['Go-arounds', s.goArounds],
-    ['Sector busts', s.busts], ['Aircraft lost', s.crashes],
+    ['Separation losses', s.violations], ['Wake losses', s.wakeViolations],
+    ['Procedure busts', s.procedureBusts], ['Go-arounds', s.goArounds],
+    ['Sector busts', s.busts], ['Diversions', s.diversions],
+    ['Aircraft lost', s.crashes],
     ['Average delay', fmtMMSS(avgDelay())], ['On frequency', state.aircraft.length]
   ];
   el.scoreBox.innerHTML = rows.map(r =>
@@ -4697,37 +5783,81 @@ function updateScore() {
 function updateOverlays() {
   const sc = SCENARIOS[state.scenario];
   const w  = windAt(10000);
-  el.clock.textContent = fmtClock(state.simTime);
+  el.clock.textContent = fmtClock(state.simTime) + '  ' + localClock();
+
+  const counts = { arrival:0, departure:0, overflight:0 };
+  for (const a of state.aircraft) counts[a.kind]++;
 
   el.ovlTL.innerHTML =
-    '<div class="big">' + FIELD.name + ' · SECTOR 24</div>' +
-    '<div>' + sc.label + ' · seed <b>' + state.seedText + '</b></div>' +
-    '<div>' + state.aircraft.length + ' on frequency · ' + state.trafficRate + '/hr</div>';
+    '<div class="big">' + FIELD.name + ' \u00b7 SECTOR 24 \u00b7 RWY ' + state.activeArr + '</div>' +
+    '<div>' + sc.label + ' \u00b7 seed <b>' + state.seedText + '</b></div>' +
+    '<div>' + counts.arrival + ' ARR \u00b7 ' + counts.departure + ' DEP \u00b7 ' +
+      counts.overflight + ' OVF \u00b7 ' + state.trafficRate + '/hr</div>' +
+    '<div>next in ' + fmtMMSS(Math.max(0, state.nextSpawnIn)) + '</div>';
 
   const left = state.sessionLength > 0
     ? fmtMMSS(Math.max(0, state.sessionLength - state.simTime)) + ' left'
     : 'open ended';
+  const m = state.metar;
   el.ovlTR.innerHTML =
-    '<div>' + (state.paused ? '<b style="color:#ffb020">PAUSED</b>' : state.speed + '×') +
-      ' · ' + left + '</div>' +
+    '<div>' + (state.paused ? '<b style="color:#ffb020">PAUSED</b>' : state.speed + '\u00d7') +
+      ' \u00b7 ' + left + '</div>' +
     '<div>SFC WIND ' + fmtHdg(state.wind.dirFrom) + '/' + Math.round(state.wind.speed) + 'kt</div>' +
     '<div>FL100 WIND ' + fmtHdg(w.dirFrom) + '/' + Math.round(w.speed) + 'kt</div>' +
-    '<div>' + state.view.pxPerNm.toFixed(1) + ' px/NM</div>';
+    '<div>CIG ' + Math.round(m.ceiling) + ' VIS ' + m.vis.toFixed(1) +
+      (m.lvp ? ' <b style="color:#ffb020">LVP</b>' : '') +
+      (m.belowMinima ? ' <b style="color:#ff4136">BELOW MIN</b>' : '') + '</div>' +
+    '<div>' + state.view.pxPerNm.toFixed(1) + ' px/NM' +
+      (state.view.rot ? ' \u00b7 rot ' + fmtHdg(state.view.rot) : '') + '</div>';
 
   let bl = '';
+  const adv = currentAdvisories();
   if (state.alerts.violations) {
-    bl += '<div class="alertline">● LOSS OF SEPARATION ×' + state.alerts.violations + '</div>';
+    const worst = adv.find(x => x.rec.level === 2);
+    bl += '<div class="alertline">\u25cf LOSS OF SEPARATION \u00d7' + state.alerts.violations +
+          (worst ? ' \u00b7 ' + worst.sep.lat.toFixed(1) + ' NM' : '') + '</div>';
   }
   if (state.alerts.advisories) {
-    bl += '<div class="advline">▲ CONFLICT PREDICTED ×' + state.alerts.advisories + '</div>';
+    const soon = adv.find(x => x.rec.level === 1);
+    bl += '<div class="advline">\u25b2 CONFLICT PREDICTED \u00d7' + state.alerts.advisories +
+          (soon ? ' \u00b7 CPA ' + soon.cpa.lat.toFixed(1) + ' NM in ' + fmtMMSS(soon.cpa.t) : '') +
+          '</div>';
   }
   const ac = selectedAircraft();
   if (ac) bl += '<div>SELECTED <b>' + ac.callsign + '</b></div>';
+  if (state.autoController) bl += '<div style="color:#9d8ce0">AI CONTROLLER WORKING</div>';
+  if (state.hotSeat !== 'both') {
+    bl += '<div>POSITION: ' + (state.hotSeat === 'arr' ? 'ARRIVALS' : 'DEPARTURES') + '</div>';
+  }
   el.ovlBL.innerHTML = bl;
 
   el.sessClock.textContent = left;
   const pending = state.aircraft.filter(a => a.wxRequest).length;
   el.wxBanner.textContent = pending ? pending + ' deviation request(s) pending' : '';
+
+  /* banners */
+  const rb = $('bannerRwy');
+  if (state.rwyChange) {
+    rb.textContent = 'RUNWAY CHANGE TO ' + state.rwyChange.to + ' IN ' +
+                     fmtMMSS(state.rwyChange.at - state.simTime) + ' \u2014 RE-SEQUENCE';
+    rb.classList.remove('hidden');
+  } else rb.classList.add('hidden');
+  const wb = $('bannerWx');
+  if (m.belowMinima) {
+    wb.textContent = 'FIELD BELOW MINIMA \u2014 CEILING ' + Math.round(m.ceiling) +
+                     ' FT, VIS ' + m.vis.toFixed(1) + ' SM \u2014 APPROACHES WILL GO MISSED';
+    wb.classList.remove('hidden');
+  } else if (state.groundStopUntil > state.simTime) {
+    wb.textContent = 'GROUND STOP \u2014 DEPARTURES HELD FOR ' +
+                     fmtMMSS(state.groundStopUntil - state.simTime);
+    wb.classList.remove('hidden');
+  } else wb.classList.add('hidden');
+}
+
+/** A plausible local time so the session reads like a shift, not a stopwatch. */
+function localClock() {
+  const base = 13 * 3600 + 20 * 60;          // the bank starts early afternoon
+  return fmtClock((base + state.simTime) % 86400).slice(0, 5) + 'L';
 }
 
 /* --- scope mouse handling ------------------------------------------------ */
@@ -4755,12 +5885,57 @@ function blockAt(px, py) {
 }
 
 canvas.addEventListener('pointerdown', ev => {
+  if (ev.button === 2) return;                     // the context menu handles this
   const p = canvasPoint(ev);
   drag.downX = p.x; drag.downY = p.y; drag.lastX = p.x; drag.lastY = p.y; drag.moved = false;
   const blk = blockAt(p.x, p.y);
   const ac  = aircraftAt(p.x, p.y);
+
+  /* measuring tools take priority over selection */
+  if (state.tools.mode === 'rbl') {
+    const w = screenToWorld(p.x, p.y);
+    if (!state.tools.rbl || state.tools.rbl.b) state.tools.rbl = { a:{ x:w.x, y:w.y }, b:null };
+    else {
+      state.tools.rbl.b = { x:w.x, y:w.y };
+      const r = state.tools.rbl;
+      toolReadout('Range ' + dist(r.a.x, r.a.y, r.b.x, r.b.y).toFixed(2) + ' NM, bearing ' +
+                  fmtHdg(bearingTo(r.a.x, r.a.y, r.b.x, r.b.y)) + '\u00b0');
+    }
+    return;
+  }
+  if (state.tools.mode === 'cpa') {
+    if (ac) {
+      if (state.tools.cpa.length >= 2) state.tools.cpa = [];
+      if (state.tools.cpa.indexOf(ac.id) < 0) state.tools.cpa.push(ac.id);
+      if (state.tools.cpa.length === 2) {
+        const a = state.aircraft.find(x => x.id === state.tools.cpa[0]);
+        const b = state.aircraft.find(x => x.id === state.tools.cpa[1]);
+        if (a && b) {
+          const c = closestPointOfApproach(a, b);
+          toolReadout(a.callsign + ' / ' + b.callsign + ': CPA ' + c.lat.toFixed(2) + ' NM, ' +
+                      Math.round(c.vert) + ' ft, in ' + fmtMMSS(c.t));
+        }
+      } else toolReadout('Now click the second aircraft.');
+    }
+    return;
+  }
+
+  /* heading bug: drag from a selected target to vector it */
+  if (ac && ac.id === state.selectedId && (ev.shiftKey || ev.altKey)) {
+    drag.mode = 'hdgbug'; drag.id = ac.id;
+    canvas.setPointerCapture(ev.pointerId);
+    return;
+  }
+
   if (ac) {
     drag.mode = 'select'; drag.id = ac.id;
+    if (ev.ctrlKey || ev.metaKey) {
+      if (state.multiSelect.has(ac.id)) state.multiSelect.delete(ac.id);
+      else state.multiSelect.add(ac.id);
+      drag.mode = null;
+      selectAircraft(ac.id, false);
+      return;
+    }
   } else if (blk) {
     drag.mode = 'block'; drag.id = blk.id;
     const s = worldToScreen(blk.x, blk.y);
@@ -4781,6 +5956,18 @@ canvas.addEventListener('pointerdown', ev => {
 canvas.addEventListener('pointermove', ev => {
   const p = canvasPoint(ev);
   if (Math.hypot(p.x - drag.downX, p.y - drag.downY) > 3) drag.moved = true;
+  if (!drag.mode) {
+    const over = aircraftAt(p.x, p.y);
+    state.hoverId = over ? over.id : null;
+  }
+  if (drag.mode === 'hdgbug') {
+    const ac = state.aircraft.find(a => a.id === drag.id);
+    if (ac) {
+      const w = screenToWorld(p.x, p.y);
+      drag.bugHdg = bearingTo(ac.x, ac.y, w.x, w.y);
+      toolReadout('Vector ' + ac.callsign + ' heading ' + fmtHdg(drag.bugHdg));
+    }
+  }
   if (drag.mode === 'pan' && drag.moved) {
     state.view.cx -= (p.x - drag.lastX) / state.view.pxPerNm;
     state.view.cy += (p.y - drag.lastY) / state.view.pxPerNm;
@@ -4797,8 +5984,15 @@ canvas.addEventListener('pointermove', ev => {
 
 canvas.addEventListener('pointerup', ev => {
   if (drag.mode === 'select' && !drag.moved) {
+    if (!(ev.ctrlKey || ev.metaKey)) state.multiSelect.clear();
     selectAircraft(drag.id, false);
     el.cmdline.focus();
+  }
+  if (drag.mode === 'hdgbug' && drag.bugHdg != null) {
+    const ac = state.aircraft.find(a => a.id === drag.id);
+    if (ac) executeCommandLine(ac.callsign + ' H' + fmtHdg(drag.bugHdg), { allowMulti:false });
+    drag.bugHdg = null;
+    toolReadout('');
   }
   drag.mode = null; drag.id = null;
   try { canvas.releasePointerCapture(ev.pointerId); } catch (e) {}
@@ -4815,6 +6009,18 @@ canvas.addEventListener('dblclick', ev => {
 
 canvas.addEventListener('wheel', ev => {
   ev.preventDefault();
+  /* Shift + wheel over the scope steps the selected aircraft's level. */
+  if (ev.shiftKey) {
+    const ac = selectedAircraft();
+    if (ac) {
+      const step = ev.deltaY < 0 ? 1000 : -1000;
+      const target = clamp(Math.round((ac.assignedAlt + step) / 1000) * 1000, MVA_FT, 45000);
+      const verb = target > ac.alt ? 'C' : 'D';
+      executeCommandLine(ac.callsign + ' ' + verb + String(Math.round(target / 100)).padStart(3, '0'),
+                         { allowMulti:false });
+      return;
+    }
+  }
   const p = canvasPoint(ev);
   zoomAt(ev.deltaY < 0 ? 1.13 : 1 / 1.13, p.x, p.y);
 }, { passive:false });
@@ -4825,7 +6031,7 @@ function freshScore() {
            delaySum:0, delayCount:0, violationLog:[], trafficLog:[],
            wxIgnored:0, emergenciesHandled:0, wakeViolations:0, procedureBusts:0,
            diversions:0, coordRejects:0, deliverySum:0, deliveryCount:0,
-           trackMilesFlown:0, trackMilesIdeal:0,
+           trackMilesFlown:0, trackMilesIdeal:0, seqHonoured:0, seqTotal:0,
            heat: new Float32Array(HEAT_W * HEAT_H) };
 }
 
@@ -4887,6 +6093,11 @@ function startScenario(seedText, scenarioKey, keepRate) {
   state.multiSelect.clear();
   state.wakeLogged = new Set();
   state.replay = { recording:true, scrubbing:false, frames:[], lastAt:-999 };
+  state.sequence = [];
+  state.tools = { mode:null, rbl:null, cpa:[] };
+  state.aiPlans = new Map();
+  state.aiTimer = 0; state.aiSaid = 0;
+  state.hoverId = null;
   if (state.script) state.script.next = 0;
   if (!keepRate) state.trafficRate = sc.rate;
   state.nextSpawnIn = 8;
@@ -4912,9 +6123,17 @@ function startScenario(seedText, scenarioKey, keepRate) {
   for (let i = 0; i < sc.startArrivals; i++) trySpawn('arrival');
   if (key === 'emergency') {
     const victim = state.aircraft[state.aircraft.length - 1];
-    if (victim) declareEmergency(victim, state.rng.pick(['engine','fuel','medical','radio']));
+    if (victim) declareEmergency(victim, state.rng.pick(['engine','fuel','medical','radio','xpdr']));
   }
+  state.tutorial = null;
+  if (key === 'tutorial') startTutorial();
+
+  $('replaybar').classList.add('hidden');
+  $('btnRbl').classList.remove('on');
+  $('btnCpa').classList.remove('on');
+  toolReadout('');
   updateStrips(true); updateSidePanel(); updateScore(); updateOverlays();
+  renderSectorTab(); renderAnalysis();
 }
 
 function endSession(reason) {
@@ -4927,21 +6146,35 @@ function endSession(reason) {
         ' · ' + fmtClock(state.simTime) + ' worked · ' + reason;
 
   const cleared = s.handoffs + s.landings;
-  const score = cleared * 10 - s.violations * 25 - s.busts * 15 - s.goArounds * 5 -
-                s.crashes * 50 - Math.round(avgDelay() / 60) * 2;
+  const score = cleared * 10
+              - s.violations * 25 - s.wakeViolations * 20 - s.busts * 15
+              - s.goArounds * 5 - s.procedureBusts * 4 - s.diversions * 12
+              - s.crashes * 50 - s.coordRejects * 3
+              - Math.round(avgDelay() / 60) * 2;
   const stats = [
     ['Score', score], ['Landed', s.landings], ['Handed off', s.handoffs],
-    ['Separation losses', s.violations], ['Go-arounds', s.goArounds],
-    ['Sector busts', s.busts], ['Aircraft lost', s.crashes],
+    ['Separation losses', s.violations], ['Wake losses', s.wakeViolations],
+    ['Procedure busts', s.procedureBusts], ['Go-arounds', s.goArounds],
+    ['Sector busts', s.busts], ['Diversions', s.diversions], ['Aircraft lost', s.crashes],
     ['Average delay', fmtMMSS(avgDelay())],
     ['Unanswered WX', s.wxIgnored], ['Emergencies handled', s.emergenciesHandled]
   ];
   $('sumStats').innerHTML = stats.map(x =>
     '<div class="stat"><div class="n">' + x[1] + '</div><div class="l">' + x[0] + '</div></div>').join('');
 
+  state.lastScore = score;
+  state.personalBests.push({ scenario: SCENARIOS[state.scenario].label,
+                             seed: state.seedText, score, at: Date.now() });
+  if (state.personalBests.length > 40) state.personalBests.shift();
+
   $('sumViol').innerHTML = s.violationLog.length
-    ? s.violationLog.map(v => '<div>' + v.csA + ' / ' + v.csB + ' — closest ' +
-        v.minLat.toFixed(2) + ' NM, ' + Math.round(v.minVert) + ' ft</div>').join('')
+    ? s.violationLog.map(v => '<div>' + (v.wake ? '<b>WAKE</b> ' : '') + v.csA + ' / ' + v.csB +
+        ' — closest ' + v.minLat.toFixed(2) + ' NM' +
+        (v.wake ? '' : ', ' + Math.round(v.minVert) + ' ft') +
+        (v.note ? ' (' + v.note + ')' : '') +
+        (v.at !== undefined ? ' at ' + fmtClock(v.at) +
+          ' <button data-vrep="' + v.at + '">REPLAY</button>' : '') +
+        '</div>').join('')
     : '<div class="pass">None. Clean sector.</div>';
 
   $('sumTraffic').innerHTML = s.trafficLog.length
@@ -4950,6 +6183,18 @@ function endSession(reason) {
         (t.delay ? '  (delay ' + fmtMMSS(t.delay) + ')' : '') +
         (t.emergency ? '  [' + t.emergency + ']' : '') + '</div>').join('')
     : '<div class="m-sys">No aircraft completed.</div>';
+
+  const eff = efficiencyStats();
+  $('sumEff').innerHTML = [
+    ['Track miles flown', eff.flown.toFixed(0) + ' NM'],
+    ['Direct-route miles', eff.ideal.toFixed(0) + ' NM'],
+    ['Extra miles vectored', eff.extra.toFixed(0) + ' NM'],
+    ['Route efficiency', (eff.efficiency * 100).toFixed(0) + '%'],
+    ['Fuel cost of vectoring', Math.round(eff.fuelKg) + ' kg'],
+    ['Delivery error on final', eff.delivery ? fmtMMSS(eff.delivery) : '-'],
+    ['Commands issued', String(state.workload.length)],
+    ['Sequence plan honoured', sequenceAccuracy()]
+  ].map(r => '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td></tr>').join('');
 
   $('summary').classList.remove('hidden');
   if (firstTime) log('sys', '=== SESSION ENDED: ' + reason + ' ===');
@@ -4962,7 +6207,7 @@ function updatePauseButton() {
 }
 function updateSpeedButtons() {
   document.querySelectorAll('.spd').forEach(b =>
-    b.classList.toggle('on', parseInt(b.getAttribute('data-spd'), 10) === state.speed));
+    b.classList.toggle('on', parseFloat(b.getAttribute('data-spd')) === state.speed));
 }
 function togglePause(force) {
   state.paused = (force === undefined) ? !state.paused : !!force;
@@ -4979,8 +6224,8 @@ function singleStep() {
 $('btnPause').addEventListener('click', () => { ensureAudio(); togglePause(); });
 $('btnStep').addEventListener('click', singleStep);
 document.querySelectorAll('.spd').forEach(b => b.addEventListener('click', () => {
-  const v = parseInt(b.getAttribute('data-spd'), 10);
-  if ([1, 2, 4, 8].indexOf(v) >= 0) { state.speed = v; updateSpeedButtons(); updateOverlays(); }
+  const v = parseFloat(b.getAttribute('data-spd'));
+  if ([0.5, 1, 2, 4, 8].indexOf(v) >= 0) { state.speed = v; updateSpeedButtons(); updateOverlays(); }
 }));
 el.rate.addEventListener('input', () => {
   const v = parseInt(el.rate.value, 10);
@@ -5053,6 +6298,51 @@ $('btnClimb').addEventListener('click',() => { const v = numField('inAlt', 3); v
 $('btnDesc').addEventListener('click', () => { const v = numField('inAlt', 3); v ? issue('D'  + v) : log('err','Enter a level first.'); });
 $('btnSpd').addEventListener('click',  () => { const v = numField('inSpd', 0); v ? issue('S'  + v) : log('err','Enter a speed first.'); });
 $('btnSpdN').addEventListener('click', () => issue('SN'));
+$('btnSpdPlus').addEventListener('click',  () => { const v = numField('inSpd', 0); v ? issue('S+' + v) : log('err','Enter a speed first.'); });
+$('btnSpdMinus').addEventListener('click', () => { const v = numField('inSpd', 0); v ? issue('S-' + v) : log('err','Enter a speed first.'); });
+$('btnExp').addEventListener('click',  () => issue('EXP'));
+$('btnPd').addEventListener('click',   () => issue('PD'));
+$('btnBlk').addEventListener('click',  () => {
+  const lo = numField('inBlkLo', 3), hi = numField('inBlkHi', 3);
+  if (!lo || !hi) { log('err', 'Enter both a block base and a block top.'); return; }
+  issue('BLK' + lo + '-' + hi);
+});
+$('btnWad').addEventListener('click',  () => issue('WAD ' + $('selFix').value));
+$('btnDva').addEventListener('click',  () => issue('DVA'));
+$('btnCva').addEventListener('click',  () => issue('CVA'));
+$('btnCanr').addEventListener('click', () => issue('CANR'));
+$('btnQsy').addEventListener('click',  () => issue('QSY'));
+$('btnDump').addEventListener('click', () => issue('DUMP'));
+$('btnUndo').addEventListener('click', () => undoLastClearance());
+$('btnSelPrev').addEventListener('click', () => { cycleSelection(-1); el.cmdline.focus(); });
+$('btnSelConflict').addEventListener('click', selectConflictPair);
+$('btnEmgXpdr').addEventListener('click', () => injectEmergency('xpdr'));
+$('btnEmgClear').addEventListener('click', () => {
+  const ac = selectedAircraft();
+  if (!ac) { log('err', 'Select an aircraft first.'); return; }
+  if (!ac.emergency) { log('err', ac.callsign + ' has no emergency.'); return; }
+  const was = ac.emergency;
+  ac.emergency = null; ac.nordo = false; ac.emgDeadline = 0;
+  ac.needsFuelDump = false; ac.dumping = 0;
+  if (was === 'xpdr') ac.xpdr = 'C';
+  log('ok', ac.callsign + ' cancels the ' + was + ' emergency.');
+  updateSidePanel(); updateStrips(true);
+});
+
+/** Jump straight to the pair the system is shouting about. */
+function selectConflictPair() {
+  const adv = currentAdvisories();
+  if (!adv.length) { log('sys', 'Nothing in conflict.'); return; }
+  const top = adv[0];
+  state.multiSelect = new Set([top.a.id, top.b.id]);
+  selectAircraft(top.a.id, false);
+  state.tools.mode = 'cpa';
+  state.tools.cpa = [top.a.id, top.b.id];
+  $('btnCpa').classList.add('on');
+  log('sys', 'Selected ' + top.a.callsign + ' and ' + top.b.callsign + ' — CPA ' +
+      top.cpa.lat.toFixed(1) + ' NM in ' + fmtMMSS(top.cpa.t) + '.');
+  updateSidePanel();
+}
 $('btnDct').addEventListener('click',  () => issue('DCT ' + $('selFix').value));
 $('btnHold').addEventListener('click', () => issue('HOLD ' + $('selFix').value));
 $('btnExitHold').addEventListener('click', () => issue('XH'));
@@ -5161,8 +6451,30 @@ window.addEventListener('keydown', ev => {
     updateSidePanel(); updateStrips(true);
     return;
   }
+  if (ev.key === 'z' && (ev.ctrlKey || ev.metaKey)) {
+    ev.preventDefault(); undoLastClearance(); return;
+  }
   if (ev.key === 'Tab' && !ev.altKey && !ev.ctrlKey) {
     ev.preventDefault();
+    /* Complete a partial callsign in the command box before falling back to
+       cycling the selection. */
+    if (ev.target === el.cmdline) {
+      const parts = el.cmdline.value.split(/\s+/);
+      const last = (parts[parts.length - 1] || '').toUpperCase();
+      if (last.length >= 2) {
+        const hits = state.aircraft.filter(a => a.callsign.startsWith(last));
+        if (hits.length === 1) {
+          parts[parts.length - 1] = hits[0].callsign;
+          el.cmdline.value = parts.join(' ') + ' ';
+          selectAircraft(hits[0].id, false);
+          return;
+        }
+        if (hits.length > 1) {
+          log('sys', 'Matches: ' + hits.map(a => a.callsign).join(', '));
+          return;
+        }
+      }
+    }
     cycleSelection(ev.shiftKey ? -1 : 1);
     el.cmdline.focus();
     return;
@@ -5171,6 +6483,13 @@ window.addEventListener('keydown', ev => {
 
   if (ev.key === ' ')       { ev.preventDefault(); togglePause(); }
   else if (ev.key === 's' || ev.key === 'S') { ev.preventDefault(); singleStep(); }
+  else if (ev.key === 'c' || ev.key === 'C') { ev.preventDefault(); selectConflictPair(); }
+  else if (ev.key === 'r' || ev.key === 'R') { ev.preventDefault(); $('btnReplay').click(); }
+  else if (ev.key === 'h' || ev.key === 'H') {
+    ev.preventDefault();
+    $('chkHints').checked = !$('chkHints').checked;
+    $('chkHints').dispatchEvent(new Event('change'));
+  }
   else if ('1248'.indexOf(ev.key) >= 0) {
     state.speed = parseInt(ev.key, 10);
     updateSpeedButtons();
@@ -5182,6 +6501,750 @@ window.addEventListener('keydown', ev => {
 window.addEventListener('resize', () => { resizeCanvas(); });
 
 /* ============================================================================
+ * SECTION 12b — PANEL WIRING: DISPLAY, SECTOR, ANALYSIS, REPLAY
+ * ========================================================================== */
+
+/* --- tabs ---------------------------------------------------------------- */
+document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x === b));
+  const id = b.getAttribute('data-tab');
+  document.querySelectorAll('.tabpane').forEach(x => x.classList.toggle('on', x.id === id));
+  if (id === 'tabAnalysis') renderAnalysis();
+  if (id === 'tabSector') renderSectorTab();
+}));
+function showTab(id) {
+  const b = Array.from(document.querySelectorAll('.tab')).find(x => x.getAttribute('data-tab') === id);
+  if (b) b.click();
+}
+
+/* --- DISPLAY tab --------------------------------------------------------- */
+const bindSel = (id, fn) => $(id).addEventListener('change', () => fn($(id).value));
+const bindChk = (id, fn) => $(id).addEventListener('change', () => fn($(id).checked));
+
+bindSel('selDeclutter',  v => { state.declutter = v; });
+bindSel('selColourMode', v => { state.colourMode = v; });
+bindChk('chkCb',         v => { state.colourBlind = v; });
+bindChk('chkDimHo',      v => { state.dimHandedOff = v; });
+bindSel('selVector',     v => { state.vectorMinutes = parseFloat(v) || 0;
+                                state.showVectors = state.vectorMinutes > 0;
+                                $('btnVectors').classList.toggle('on', state.showVectors); });
+bindChk('chkRotate',     v => { state.rotateScope = v; });
+bindChk('chkHalo',       v => { state.showHalo = v; });
+bindChk('chkMsa',        v => { state.showMsa = v; });
+bindChk('chkGrid',       v => { state.showGrid = v; });
+bindSel('selHighlight',  v => { state.highlight = v; });
+
+$('rngTrail').addEventListener('input', () => {
+  state.trailLength = clamp(parseInt($('rngTrail').value, 10) || 0, 0, 20);
+  $('trailVal').textContent = String(state.trailLength);
+  state.showTrails = state.trailLength > 0;
+  $('btnTrails').classList.toggle('on', state.showTrails);
+});
+$('rngBright').addEventListener('input', () => {
+  const v = parseInt($('rngBright').value, 10) || 100;
+  state.brightness = v / 100;
+  $('brightVal').textContent = v + '%';
+});
+$('rngUiScale').addEventListener('input', () => {
+  const v = clamp(parseInt($('rngUiScale').value, 10) || 100, 80, 130);
+  document.body.style.fontSize = (12 * v / 100).toFixed(1) + 'px';
+  resizeCanvas();
+});
+const applyFilter = () => {
+  const lo = $('inFiltLo').value.trim(), hi = $('inFiltHi').value.trim();
+  state.filtLo = lo === '' ? 0 : (parseAltitudeToken(lo.replace(/\D/g, '')) || 0);
+  state.filtHi = hi === '' ? 60000 : (parseAltitudeToken(hi.replace(/\D/g, '')) || 60000);
+  if (state.filtHi < state.filtLo) { const t = state.filtHi; state.filtHi = state.filtLo; state.filtLo = t; }
+};
+$('inFiltLo').addEventListener('change', applyFilter);
+$('inFiltHi').addEventListener('change', applyFilter);
+$('btnFiltClear').addEventListener('click', () => {
+  $('inFiltLo').value = ''; $('inFiltHi').value = '';
+  state.filtLo = 0; state.filtHi = 60000;
+});
+$('btnExpandBlock').addEventListener('click', () => {
+  const ac = selectedAircraft();
+  if (!ac) { log('err', 'Select an aircraft first.'); return; }
+  ac.blockExpanded = !ac.blockExpanded;
+  log('sys', ac.callsign + ' data block ' + (ac.blockExpanded ? 'pinned expanded.' : 'back to normal.'));
+});
+$('btnRbl').addEventListener('click', () => {
+  state.tools.mode = state.tools.mode === 'rbl' ? null : 'rbl';
+  state.tools.rbl = null;
+  $('btnRbl').classList.toggle('on', state.tools.mode === 'rbl');
+  $('btnCpa').classList.remove('on');
+  toolReadout(state.tools.mode === 'rbl' ? 'Click two points on the scope.' : '');
+});
+$('btnCpa').addEventListener('click', () => {
+  state.tools.mode = state.tools.mode === 'cpa' ? null : 'cpa';
+  state.tools.cpa = [];
+  $('btnCpa').classList.toggle('on', state.tools.mode === 'cpa');
+  $('btnRbl').classList.remove('on');
+  toolReadout(state.tools.mode === 'cpa' ? 'Click two aircraft.' : '');
+});
+$('btnClearTools').addEventListener('click', () => {
+  state.tools = { mode:null, rbl:null, cpa:[] };
+  $('btnRbl').classList.remove('on'); $('btnCpa').classList.remove('on');
+  toolReadout('');
+});
+function toolReadout(t) { $('toolReadout').textContent = t; }
+
+$('btnProfile').addEventListener('click', () => {
+  state.profileOpen = !state.profileOpen;
+  $('profileWrap').classList.toggle('hidden', !state.profileOpen);
+  $('btnProfile').classList.toggle('on', state.profileOpen);
+  resizeCanvas();
+});
+$('btnPng').addEventListener('click', () => {
+  try {
+    const a = document.createElement('a');
+    a.download = 'sector24-' + state.seedText + '-' + fmtClock(state.simTime).replace(/:/g, '') + '.png';
+    a.href = canvas.toDataURL('image/png');
+    a.click();
+    log('sys', 'Scope saved as ' + a.download);
+  } catch (e) { log('err', 'The browser refused to export the scope image.'); }
+});
+$('btnFull').addEventListener('click', () => {
+  try {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else document.documentElement.requestFullscreen();
+  } catch (e) { log('err', 'Full screen is not available here.'); }
+});
+
+/* --- SECTOR tab ---------------------------------------------------------- */
+bindChk('chkPilot',        v => { state.pilotRealism = v; });
+bindChk('chkModeC',        v => { state.radarRealism = v; });
+bindChk('chkNotifyFix',    v => { state.notifyOnFix = v; });
+bindChk('chkPauseConflict',v => { state.pauseOnConflict = v; });
+bindChk('chkPauseArrival', v => { state.pauseOnArrival = v; });
+bindChk('chkAdvisor',      v => { state.advisor = v; renderAnalysis(); });
+bindChk('chkHints',        v => { state.hints = v; updateStrips(true); updateSidePanel(); });
+bindChk('chkAuto',         v => {
+  state.autoController = v;
+  state.aiPlans = new Map();
+  log('sys', v ? 'AI controller is now working the sector. Watch, or take back any aircraft by commanding it.'
+               : 'AI controller off — the sector is yours.');
+});
+bindSel('selRadar',   v => { state.radarMode = v; state.radarSweepT = 0; });
+bindSel('selHotSeat', v => { state.hotSeat = v; updateStrips(true); });
+
+$('btnMit').addEventListener('click', () => {
+  const fix = $('selMitFix').value;
+  const nm = parseInt($('inMit').value, 10);
+  if (!setMit(fix, Number.isFinite(nm) ? nm : 0)) log('err', 'Unknown fix.');
+  renderSectorTab();
+});
+$('btnMitClear').addEventListener('click', () => {
+  for (const k of Object.keys(state.mit)) setMit(k, 0);
+  renderSectorTab();
+});
+$('btnRwyChange').addEventListener('click', () => {
+  const id = $('selNewRwy').value;
+  if (!beginRunwayChange(id, 120)) log('err', 'Runway ' + id + ' is already in use.');
+  renderSectorTab();
+});
+$('btnScriptRun').addEventListener('click', () => {
+  const parsed = parseScript($('scriptBox').value);
+  if (parsed.errors.length) {
+    $('scriptMsg').innerHTML = '<span class="fail">' + parsed.errors.join('<br>') + '</span>';
+    return;
+  }
+  startScenario(state.seedText, state.scenario, true);
+  for (const h of parsed.header) { try { SCRIPT_HEADER[h.verb](h.args); } catch (e) {} }
+  state.rng = makeRng(state.seedText + '//' + state.scenario);
+  state.script = { events: parsed.events, next: 0 };
+  el.seed.value = state.seedText;
+  el.rate.value = state.trafficRate;
+  el.rateVal.textContent = state.trafficRate + '/hr';
+  $('scriptMsg').innerHTML = '<span class="pass">Script loaded: ' + parsed.events.length +
+                             ' event(s) queued.</span>';
+  log('sys', 'Scenario script running (' + parsed.events.length + ' events).');
+});
+$('btnScriptClear').addEventListener('click', () => {
+  $('scriptBox').value = ''; state.script = null;
+  $('scriptMsg').textContent = 'Script cleared.';
+});
+$('btnScriptCode').addEventListener('click', () => {
+  const code = sessionCode();
+  $('scriptBox').value = code;
+  $('scriptMsg').textContent = 'Session code written above — copy it to share this exact session.';
+  log('sys', 'Session code: ' + code.split('\n').join(' | '));
+});
+
+/** A short shareable description of the current session. */
+function sessionCode() {
+  return ['seed ' + state.seedText,
+          'scenario ' + state.scenario,
+          'rate ' + state.trafficRate,
+          'wind ' + fmtHdg(state.wind.dirFrom) + '/' + Math.round(state.wind.speed),
+          'runway ' + state.activeArr,
+          'weather ' + Math.round(state.metar.targetCeiling) + ' ' + state.metar.targetVis.toFixed(1),
+          'cells ' + state.cells.length].join('\n');
+}
+
+function renderSectorTab() {
+  /* briefing */
+  const m = state.metar, rwy = getRunway(state.activeArr);
+  const rows = [
+    ['Airport', FIELD.name + ' · elevation ' + FIELD.elev + ' ft'],
+    ['Landing runway', state.activeArr + ' (' + fmtHdg(rwy ? rwy.hdg : 0) + '°)'],
+    ['Departure runway', state.activeDep],
+    ['Approach gates', gatesFor(state.activeArr).join(' / ')],
+    ['Surface wind', fmtHdg(state.wind.dirFrom) + '/' + Math.round(state.wind.speed) + ' kt'],
+    ['Ceiling / vis', Math.round(m.ceiling) + ' ft / ' + m.vis.toFixed(1) + ' SM'],
+    ['Minima', 'ILS CAT I · DH ' + CAT1_DH_AGL + ' ft · ' + CAT1_MIN_VIS + ' SM' +
+               (m.belowMinima ? ' — BELOW' : '')],
+    ['Procedures', m.lvp ? 'LOW VISIBILITY' : 'normal'],
+    ['Separation', SEP_LATERAL_NM + ' NM / ' + SEP_VERTICAL_FT + ' ft · wake matrix on final'],
+    ['MVA', fmtAlt(MVA_FT)],
+    ['Dep release', state.coordination ? 'negotiated per aircraft' : fmtAlt(DEP_HANDOFF_ALT)],
+    ['Delivery target', fmtMMSS(state.deliveryTarget) + ' between landings']
+  ];
+  $('briefKv').innerHTML = rows.map(r =>
+    '<div class="k2">' + r[0] + '</div><div class="v2">' + r[1] + '</div>').join('');
+
+  /* coordination offers */
+  const cl = $('coordList');
+  if (!state.coordination) {
+    cl.innerHTML = 'Coordination is not active in this scenario. ' +
+                   'Pick the "Sector coordination" scenario to negotiate inbound levels.';
+  } else if (!state.coord.pending.length) {
+    cl.innerHTML = 'No offers outstanding.';
+  } else {
+    cl.innerHTML = state.coord.pending.map(o =>
+      '<div class="coordcard"><div class="r"><b>' + o.callsign + '</b><span>' +
+      fmtAlt(o.alt) + ' via ' + o.entry + '</span></div>' +
+      '<div class="r"><span class="lbl">expires ' + fmtMMSS(Math.max(0, o.expires - state.simTime)) + '</span>' +
+      '<span><button data-coord="acc" data-id="' + o.id + '">ACCEPT</button> ' +
+      '<button data-coord="ctr" data-id="' + o.id + '">COUNTER</button> ' +
+      '<button data-coord="rej" data-id="' + o.id + '">REFUSE</button></span></div></div>').join('');
+  }
+
+  /* flow restrictions in force */
+  const keys = Object.keys(state.mit);
+  $('mitList').textContent = keys.length
+    ? 'In force: ' + keys.map(k => k + ' ' + state.mit[k] + ' NM').join(', ')
+    : 'No flow restrictions in force.';
+  $('rwyStatus').textContent = state.rwyChange
+    ? 'changing to ' + state.rwyChange.to + ' in ' + fmtMMSS(state.rwyChange.at - state.simTime)
+    : 'runway ' + state.activeArr + ' in use';
+}
+
+$('coordList').addEventListener('click', ev => {
+  const b = ev.target.closest ? ev.target.closest('button[data-coord]') : null;
+  if (!b) return;
+  const id = parseInt(b.getAttribute('data-id'), 10);
+  const what = b.getAttribute('data-coord');
+  if (what === 'acc') { const r = coordAccept(id); if (!r.ok) log('err', r.msg); }
+  else if (what === 'rej') { const r = coordRefuse(id); if (!r.ok) log('err', r.msg); }
+  else {
+    el.cmdline.value = 'CTR ' + id + ' ';
+    el.cmdline.focus();
+    log('sys', 'Type the level you want, e.g. CTR ' + id + ' 120, then Enter.');
+  }
+  renderSectorTab();
+});
+
+/* --- ANALYSIS tab -------------------------------------------------------- */
+function renderAnalysis() {
+  /* advisories */
+  const adv = currentAdvisories();
+  $('advisoryList').innerHTML = adv.length
+    ? adv.map(x =>
+        '<div class="advisory' + (x.rec.level === 2 ? ' red' : '') + '">' +
+        '<b>' + x.a.callsign + ' / ' + x.b.callsign + '</b> — now ' +
+        x.sep.lat.toFixed(1) + ' NM / ' + Math.round(x.sep.vert) + ' ft, CPA ' +
+        x.cpa.lat.toFixed(1) + ' NM in ' + fmtMMSS(x.cpa.t) +
+        (x.fix ? '<br><span class="hint">suggest: ' + x.fix.text +
+                 (x.fix.cmd ? ' <button data-fix="' + x.fix.cmd + '">APPLY</button>' : '') + '</span>'
+               : '') + '</div>').join('')
+    : 'No conflicts predicted.';
+
+  /* workload sparkline */
+  drawSpark($('sparkWork'), workloadSeries(30), '#43d17f');
+
+  /* heat map */
+  drawHeat($('heatCanvas'));
+
+  /* efficiency */
+  const e = efficiencyStats();
+  const rows = [
+    ['Track miles flown', e.flown.toFixed(0) + ' NM'],
+    ['Direct-route miles', e.ideal.toFixed(0) + ' NM'],
+    ['Extra miles vectored', e.extra.toFixed(0) + ' NM'],
+    ['Route efficiency', e.ideal > 0 ? (e.efficiency * 100).toFixed(0) + '%' : 'n/a yet'],
+    ['Fuel cost of vectoring', Math.round(e.fuelKg) + ' kg'],
+    ['Average delay', fmtMMSS(e.avgDelay)],
+    ['Delivery error on final', e.delivery ? fmtMMSS(e.delivery) + ' off target' : '—'],
+    ['Commands issued', String(state.workload.length)],
+    ['Landings', String(state.score.landings)],
+    ['Wake losses', String(state.score.wakeViolations)],
+    ['Procedure busts', String(state.score.procedureBusts)],
+    ['Diversions', String(state.score.diversions)]
+  ];
+  $('anTable').innerHTML = rows.map(r => '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td></tr>').join('');
+
+  $('pbTable').innerHTML = state.personalBests.length
+    ? state.personalBests.slice().sort((a, b) => b.score - a.score).slice(0, 8).map(b =>
+        '<tr><td>' + b.scenario + ' · ' + b.seed + '</td><td>' + b.score + '</td></tr>').join('')
+    : '<tr><td colspan="2" class="mini">No completed sessions yet this run. ' +
+      'Bests are kept in memory only.</td></tr>';
+}
+
+$('advisoryList').addEventListener('click', ev => {
+  const b = ev.target.closest ? ev.target.closest('button[data-fix]') : null;
+  if (!b) return;
+  executeCommandLine(b.getAttribute('data-fix'));
+  renderAnalysis();
+});
+
+function drawSpark(cv, series, colour) {
+  const dpr = window.devicePixelRatio || 1;
+  const r = cv.getBoundingClientRect();
+  const w = Math.max(40, Math.round(r.width)), h = Math.max(20, Math.round(r.height));
+  cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+  const c = cv.getContext('2d');
+  c.setTransform(dpr, 0, 0, dpr, 0, 0);
+  c.fillStyle = '#070f14'; c.fillRect(0, 0, w, h);
+  if (!series.length) return;
+  const max = Math.max(1, Math.max.apply(null, series));
+  const bw = w / series.length;
+  c.fillStyle = colour;
+  for (let i = 0; i < series.length; i++) {
+    const bh = series[i] / max * (h - 6);
+    c.fillRect(i * bw + 0.5, h - bh - 2, Math.max(1, bw - 1), bh);
+  }
+  c.fillStyle = '#5d7482';
+  c.font = '9px monospace';
+  c.fillText('peak ' + max + '/30s', 3, 10);
+}
+
+function drawHeat(cv) {
+  const dpr = window.devicePixelRatio || 1;
+  const r = cv.getBoundingClientRect();
+  const w = Math.max(40, Math.round(r.width)), h = Math.max(20, Math.round(r.height));
+  cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+  const c = cv.getContext('2d');
+  c.setTransform(dpr, 0, 0, dpr, 0, 0);
+  c.fillStyle = '#070f14'; c.fillRect(0, 0, w, h);
+  const heat = state.score.heat;
+  if (!heat) return;
+  let max = 0;
+  for (let i = 0; i < heat.length; i++) max = Math.max(max, heat[i]);
+  const cw = w / HEAT_W, ch = h / HEAT_H;
+  for (let gy = 0; gy < HEAT_H; gy++) {
+    for (let gx = 0; gx < HEAT_W; gx++) {
+      const v = heat[gy * HEAT_W + gx];
+      if (v <= 0) continue;
+      const t = max > 0 ? v / max : 0;
+      c.fillStyle = 'rgba(' + Math.round(120 + 135 * t) + ',' + Math.round(150 - 110 * t) + ',60,' +
+                    (0.25 + 0.65 * t).toFixed(2) + ')';
+      /* grid row 0 is the south edge, so flip for the screen */
+      c.fillRect(gx * cw, (HEAT_H - 1 - gy) * ch, Math.ceil(cw), Math.ceil(ch));
+    }
+  }
+  /* sector outline for orientation */
+  c.strokeStyle = 'rgba(80,140,160,0.5)'; c.lineWidth = 1;
+  c.beginPath();
+  SECTOR.forEach((pt, i) => {
+    const x = (pt.x + HEAT_SPAN / 2) / HEAT_SPAN * w;
+    const y = h - (pt.y + HEAT_SPAN / 2) / HEAT_SPAN * h;
+    if (i === 0) c.moveTo(x, y); else c.lineTo(x, y);
+  });
+  c.closePath(); c.stroke();
+  c.fillStyle = '#5d7482'; c.font = '9px monospace';
+  c.fillText(max > 0 ? 'hot spots' : 'no conflicts yet', 3, 10);
+}
+
+/* --- REPLAY -------------------------------------------------------------- */
+function replayBarVisible(on) {
+  $('replaybar').classList.toggle('hidden', !on);
+  $('btnReplay').classList.toggle('on', !!on);
+}
+function replayRange() {
+  const f = state.replay.frames;
+  return f.length ? { lo: f[0].t, hi: f[f.length - 1].t } : { lo:0, hi:0 };
+}
+function enterReplay() {
+  if (!state.replay.frames.length) { log('err', 'Nothing recorded yet.'); return; }
+  state.replay.scrubbing = true;
+  togglePause(true);
+  replayBarVisible(true);
+  syncScrub();
+}
+function syncScrub() {
+  const r = replayRange();
+  const span = Math.max(1e-6, r.hi - r.lo);
+  $('scrub').value = String(Math.round((state.simTime - r.lo) / span * 100));
+  $('scrubT').textContent = fmtClock(state.simTime);
+}
+$('scrub').addEventListener('input', () => {
+  if (!state.replay.frames.length) return;
+  state.replay.scrubbing = true;
+  replayBarVisible(true);
+  const r = replayRange();
+  const t = r.lo + (parseInt($('scrub').value, 10) / 100) * (r.hi - r.lo);
+  replaySeekTo(t);
+  togglePause(true);
+  $('scrubT').textContent = fmtClock(state.simTime);
+  render();
+});
+$('btnReplay').addEventListener('click', () => {
+  if (state.replay.scrubbing) {
+    $('btnRpLive').click();
+  } else {
+    enterReplay();
+  }
+  $('btnReplay').classList.toggle('on', state.replay.scrubbing);
+});
+$('btnRpBack').addEventListener('click', () => { enterReplay(); replaySeekTo(state.simTime - 10); syncScrub(); render(); });
+$('btnRpFwd').addEventListener('click',  () => { enterReplay(); replaySeekTo(state.simTime + 10); syncScrub(); render(); });
+$('btnRpBranch').addEventListener('click', () => {
+  if (!state.replay.scrubbing) { log('err', 'Scrub back to a moment first.'); return; }
+  /* Everything after this point is discarded and the session carries on live. */
+  state.replay.frames = state.replay.frames.filter(f => f.t <= state.simTime + 1e-9);
+  state.replay.scrubbing = false;
+  state.replay.recording = true;
+  state.replay.lastAt = state.simTime;
+  replayBarVisible(false);
+  togglePause(false);
+  log('sys', 'Taking over from ' + fmtClock(state.simTime) +
+             ' — same traffic, your decisions from here.');
+});
+$('btnRpLive').addEventListener('click', () => {
+  const r = replayRange();
+  if (state.replay.frames.length) replaySeekTo(r.hi);
+  state.replay.scrubbing = false;
+  state.replay.recording = true;
+  replayBarVisible(false);
+  syncScrub();
+  render();
+  log('sys', 'Back to the live picture.');
+});
+
+/* --- comms log filter ---------------------------------------------------- */
+$('logFilter').addEventListener('input', () => {
+  state.logFilterText = $('logFilter').value.trim().toLowerCase();
+  const kids = el.log.childNodes;
+  for (let i = 0; i < kids.length; i++) {
+    const n = kids[i];
+    if (!n.getAttribute) continue;
+    const t = n.getAttribute('data-text') || '';
+    n.style.display = (!state.logFilterText || t.indexOf(state.logFilterText) >= 0) ? '' : 'none';
+  }
+});
+$('btnLogClear').addEventListener('click', () => { el.log.innerHTML = ''; });
+
+/* --- context menu -------------------------------------------------------- */
+function showContextMenu(px, py, ac) {
+  const m = $('ctxmenu');
+  const item = (label, cmd) => '<button data-cmd="' + cmd + '">' + label + '</button>';
+  m.innerHTML = '<div class="hdr">' + ac.callsign + '</div>' +
+    item('Descend 5000', 'D050') + item('Climb FL200', 'C200') +
+    '<div class="sep"></div>' +
+    item('Speed 210', 'S210') + item('Resume speed', 'SN') +
+    '<div class="sep"></div>' +
+    (ac.procedure ? item((getProcedure(ac.procedure) || {}).kind === 'sid' ? 'Climb via ' + ac.procedure
+                                                        : 'Descend via ' + ac.procedure,
+                         (getProcedure(ac.procedure) || {}).kind === 'sid' ? 'CVA' : 'DVA') : '') +
+    item('Cleared ILS ' + state.activeArr, 'ILS ' + state.activeArr) +
+    item('Hold at ' + $('selFix').value, 'HOLD ' + $('selFix').value) +
+    '<div class="sep"></div>' +
+    item('Hand off', 'HO') + item('Go around', 'GA') +
+    '<div class="sep"></div>' +
+    '<button data-act="note">Annotate strip…</button>' +
+    '<button data-act="expand">Toggle expanded block</button>' +
+    '<button data-act="cpa">Use for CPA</button>';
+  m.style.left = Math.min(px, window.innerWidth - 170) + 'px';
+  m.style.top = Math.min(py, window.innerHeight - 260) + 'px';
+  m.classList.remove('hidden');
+  m.setAttribute('data-ac', String(ac.id));
+}
+function hideContextMenu() { $('ctxmenu').classList.add('hidden'); }
+
+$('ctxmenu').addEventListener('click', ev => {
+  const b = ev.target.closest ? ev.target.closest('button') : null;
+  if (!b) return;
+  const id = parseInt($('ctxmenu').getAttribute('data-ac'), 10);
+  const ac = state.aircraft.find(a => a.id === id);
+  hideContextMenu();
+  if (!ac) return;
+  const cmd = b.getAttribute('data-cmd');
+  if (cmd) { executeCommandLine(ac.callsign + ' ' + cmd, { allowMulti:false }); updateSidePanel(); return; }
+  const act = b.getAttribute('data-act');
+  if (act === 'note') { el.cmdline.value = ac.callsign + ' NOTE '; el.cmdline.focus(); }
+  else if (act === 'expand') { ac.blockExpanded = !ac.blockExpanded; }
+  else if (act === 'cpa') {
+    state.tools.mode = 'cpa';
+    state.tools.cpa = [ac.id];
+    $('btnCpa').classList.add('on');
+    toolReadout('Now click the second aircraft.');
+  }
+});
+window.addEventListener('pointerdown', ev => {
+  if (!$('ctxmenu').classList.contains('hidden') && !ev.target.closest('#ctxmenu')) hideContextMenu();
+}, true);
+canvas.addEventListener('contextmenu', ev => {
+  ev.preventDefault();
+  const p = canvasPoint(ev);
+  const ac = aircraftAt(p.x, p.y) || (blockAt(p.x, p.y));
+  if (!ac) { hideContextMenu(); return; }
+  selectAircraft(ac.id, false);
+  showContextMenu(ev.clientX, ev.clientY, ac);
+});
+
+/* --- strip drag to set the landing order --------------------------------- */
+let dragStripId = null;
+function stripDragStart(ev) {
+  const st = ev.target.closest ? ev.target.closest('.strip') : null;
+  if (!st) return;
+  dragStripId = parseInt(st.getAttribute('data-id'), 10);
+  st.classList.add('drag');
+  try { ev.dataTransfer.setData('text/plain', String(dragStripId)); } catch (e) {}
+}
+function stripDragOver(ev) {
+  ev.preventDefault();
+  const st = ev.target.closest ? ev.target.closest('.strip') : null;
+  document.querySelectorAll('.strip.over').forEach(x => x.classList.remove('over'));
+  if (st) st.classList.add('over');
+}
+function stripDrop(ev) {
+  ev.preventDefault();
+  document.querySelectorAll('.strip.over,.strip.drag').forEach(x => x.classList.remove('over', 'drag'));
+  const st = ev.target.closest ? ev.target.closest('.strip') : null;
+  if (!st || dragStripId == null) { dragStripId = null; return; }
+  const targetId = parseInt(st.getAttribute('data-id'), 10);
+  const moving = state.aircraft.find(a => a.id === dragStripId);
+  const onto   = state.aircraft.find(a => a.id === targetId);
+  dragStripId = null;
+  if (!moving || !onto || moving.kind !== 'arrival' || onto.kind !== 'arrival') return;
+
+  /* Seed the plan from the current display order the first time. */
+  if (!state.sequence.length) {
+    state.sequence = state.aircraft.filter(a => a.kind === 'arrival')
+      .sort((a, b) => dist(a.x, a.y, FIELD.x, FIELD.y) - dist(b.x, b.y, FIELD.x, FIELD.y))
+      .map(a => a.id);
+  }
+  const from = state.sequence.indexOf(moving.id);
+  if (from >= 0) state.sequence.splice(from, 1);
+  const to = state.sequence.indexOf(onto.id);
+  state.sequence.splice(to < 0 ? state.sequence.length : to, 0, moving.id);
+  log('sys', 'Landing order set: ' + state.sequence
+        .map(id => (state.aircraft.find(a => a.id === id) || {}).callsign).filter(Boolean).join(', '));
+  updateStrips(true);
+}
+[el.bayArr, el.bayDep].forEach(bay => {
+  bay.addEventListener('dragstart', stripDragStart);
+  bay.addEventListener('dragover', stripDragOver);
+  bay.addEventListener('drop', stripDrop);
+  bay.addEventListener('dragend', () => {
+    document.querySelectorAll('.strip.over,.strip.drag').forEach(x => x.classList.remove('over', 'drag'));
+    dragStripId = null;
+  });
+});
+
+/* ============================================================================
+ * SECTION 12c — TUTORIAL, EXPORT, SEQUENCING SCORE
+ * ========================================================================== */
+
+function sequenceAccuracy() {
+  const s = state.score;
+  if (!s.seqTotal) return 'no plan set';
+  return s.seqHonoured + '/' + s.seqTotal + ' (' +
+         Math.round(s.seqHonoured / s.seqTotal * 100) + '%)';
+}
+
+/* --- guided tutorial ------------------------------------------------------
+ * One aircraft, one job at a time, advancing when the controller actually does
+ * the thing. Nothing is scripted on rails: it watches the real simulation.
+ * ------------------------------------------------------------------------ */
+const TUTORIAL_STEPS = [
+  { text: 'Welcome to Sector 24. An arrival is checking in from the north. ' +
+          'Click its radar target, or its strip on the left, to select it.',
+    done: () => selectedAircraft() !== null },
+  { text: 'Good. Now put it on the published arrival profile: type ' +
+          'DVA and press Enter (the callsign is optional once it is selected).',
+    done: () => state.aircraft.some(a => a.viaProcedure) },
+  { text: 'It is descending on the STAR. Slow it down for the approach: type S210.',
+    done: () => state.aircraft.some(a => a.assignedIas <= 215) },
+  { text: 'Now vector it onto final for runway ' + '27' +
+          '. Aim for a heading that closes on the extended centreline from the east ' +
+          '(try H270 once it is east of the field, or drag from the target with Shift held).',
+    done: () => state.aircraft.some(a => {
+      const r = getRunway(state.activeArr); if (!r) return false;
+      const g = runwayGeometry(a, r);
+      return g.along > 1 && g.along < 14 && Math.abs(g.xtk) < 2.5;
+    }) },
+  { text: 'It is close to the localiser. Clear the approach: ILS 27. ' +
+          'If the pilot refuses, the message tells you exactly which condition failed.',
+    done: () => state.aircraft.some(a => a.navMode === 'approach') },
+  { text: 'Cleared and established. Watch it down. ' +
+          'Try the PROFILE button in the DISPLAY tab to see the vertical picture.',
+    done: () => state.score.landings > 0 },
+  { text: 'That is the loop: descend, sequence, clear, land. ' +
+          'Pick another scenario from the header when you are ready. ' +
+          'Press F1 at any time for the full command reference.',
+    done: () => false }
+];
+
+function startTutorial() {
+  state.tutorial = { step: 0, spawned: false };
+  state.trafficRate = 0;
+  el.rate.value = 0;
+  el.rateVal.textContent = '0/hr';
+  const ac = commitSpawn(spawnArrivalAt('TANGO', 12000, 'TUT001'));
+  state.tutorial.spawned = !!ac;
+  log('sys', 'TUTORIAL: ' + TUTORIAL_STEPS[0].text);
+  showTutorial();
+}
+
+function showTutorial() {
+  const t = state.tutorial;
+  if (!t) { $('bannerRwy').classList.add('hidden'); return; }
+  const step = TUTORIAL_STEPS[t.step];
+  const b = $('bannerRwy');
+  b.textContent = 'TUTORIAL ' + (t.step + 1) + '/' + TUTORIAL_STEPS.length + '  ·  ' + step.text;
+  b.classList.remove('hidden');
+}
+
+function updateTutorial() {
+  const t = state.tutorial;
+  if (!t || state.scenario !== 'tutorial') return;
+  const step = TUTORIAL_STEPS[t.step];
+  if (!step) return;
+  let ok = false;
+  try { ok = !!step.done(); } catch (e) { ok = false; }
+  if (ok && t.step < TUTORIAL_STEPS.length - 1) {
+    t.step++;
+    log('ok', 'TUTORIAL: ' + TUTORIAL_STEPS[t.step].text);
+    showTutorial();
+  }
+}
+
+/* --- exporting ------------------------------------------------------------ */
+function downloadText(name, text, mime) {
+  try {
+    const blob = new Blob([text], { type: mime || 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = name;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    log('sys', 'Exported ' + name);
+    return true;
+  } catch (e) {
+    log('err', 'The browser refused the download.');
+    return false;
+  }
+}
+
+function summaryText() {
+  const s = state.score, eff = efficiencyStats();
+  const L = [];
+  L.push('SECTOR 24 SESSION REPORT');
+  L.push('========================');
+  L.push('Scenario      : ' + SCENARIOS[state.scenario].label);
+  L.push('Seed          : ' + state.seedText);
+  L.push('Time worked   : ' + fmtClock(state.simTime));
+  L.push('Traffic rate  : ' + state.trafficRate + '/hr');
+  L.push('Landing runway: ' + state.activeArr);
+  L.push('');
+  L.push('RESULT');
+  L.push('  Score                 ' + (state.lastScore === undefined ? '-' : state.lastScore));
+  L.push('  Landed                ' + s.landings);
+  L.push('  Handed off            ' + s.handoffs);
+  L.push('  Separation losses     ' + s.violations);
+  L.push('  Wake losses           ' + s.wakeViolations);
+  L.push('  Procedure busts       ' + s.procedureBusts);
+  L.push('  Go-arounds            ' + s.goArounds);
+  L.push('  Sector busts          ' + s.busts);
+  L.push('  Diversions            ' + s.diversions);
+  L.push('  Aircraft lost         ' + s.crashes);
+  L.push('  Average delay         ' + fmtMMSS(avgDelay()));
+  L.push('');
+  L.push('EFFICIENCY');
+  L.push('  Track miles flown     ' + eff.flown.toFixed(0));
+  L.push('  Direct-route miles    ' + eff.ideal.toFixed(0));
+  L.push('  Route efficiency      ' + (eff.efficiency * 100).toFixed(0) + '%');
+  L.push('  Fuel cost of vectors  ' + Math.round(eff.fuelKg) + ' kg');
+  L.push('  Delivery error        ' + (eff.delivery ? fmtMMSS(eff.delivery) : '-'));
+  L.push('  Sequence plan         ' + sequenceAccuracy());
+  L.push('  Commands issued       ' + state.workload.length);
+  L.push('');
+  L.push('SEPARATION LOSSES');
+  if (!s.violationLog.length) L.push('  none');
+  for (const v of s.violationLog) {
+    L.push('  ' + (v.wake ? '[wake] ' : '') + v.csA + ' / ' + v.csB + '  ' +
+           v.minLat.toFixed(2) + ' NM' + (v.wake ? '' : ' / ' + Math.round(v.minVert) + ' ft') +
+           (v.at !== undefined ? '  at ' + fmtClock(v.at) : ''));
+  }
+  L.push('');
+  L.push('TRAFFIC');
+  for (const t of s.trafficLog) {
+    L.push('  ' + fmtClock(t.time) + '  ' + t.callsign.padEnd(8) + ' ' + t.type + ' ' +
+           t.kind.padEnd(11) + ' ' + String(t.outcome).toUpperCase() +
+           (t.delay ? '  delay ' + fmtMMSS(t.delay) : ''));
+  }
+  L.push('');
+  L.push('SESSION CODE');
+  L.push(sessionCode().split('\n').map(x => '  ' + x).join('\n'));
+  return L.join('\n');
+}
+
+function summaryCsv() {
+  const rows = [['time','callsign','type','kind','outcome','delay_s','emergency']];
+  for (const t of state.score.trafficLog) {
+    rows.push([fmtClock(t.time), t.callsign, t.type, t.kind, t.outcome,
+               Math.round(t.delay || 0), t.emergency || '']);
+  }
+  rows.push([]);
+  rows.push(['metric','value']);
+  const s = state.score, eff = efficiencyStats();
+  const pairs = [['score', state.lastScore === undefined ? '' : state.lastScore],
+    ['landings', s.landings], ['handoffs', s.handoffs], ['violations', s.violations],
+    ['wake_violations', s.wakeViolations], ['procedure_busts', s.procedureBusts],
+    ['go_arounds', s.goArounds], ['sector_busts', s.busts], ['diversions', s.diversions],
+    ['aircraft_lost', s.crashes], ['avg_delay_s', Math.round(avgDelay())],
+    ['track_miles_flown', eff.flown.toFixed(1)], ['track_miles_ideal', eff.ideal.toFixed(1)],
+    ['route_efficiency', (eff.efficiency * 100).toFixed(1)],
+    ['commands', state.workload.length], ['seed', state.seedText],
+    ['scenario', state.scenario]];
+  for (const pr of pairs) rows.push(pr);
+  return rows.map(r => r.map(c => {
+    const v = String(c === undefined ? '' : c);
+    return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
+  }).join(',')).join('\n');
+}
+
+$('btnExportTxt').addEventListener('click', () =>
+  downloadText('sector24-' + state.seedText + '.txt', summaryText(), 'text/plain'));
+$('btnExportCsv').addEventListener('click', () =>
+  downloadText('sector24-' + state.seedText + '.csv', summaryCsv(), 'text/csv'));
+$('btnSumCode').addEventListener('click', () => {
+  $('scriptBox').value = sessionCode();
+  showTab('tabSector');
+  $('summary').classList.add('hidden');
+  log('sys', 'Session code copied into the script box on the SECTOR tab.');
+});
+
+/* Replay a specific separation loss straight from the summary. */
+$('sumViol').addEventListener('click', ev => {
+  const b = ev.target.closest ? ev.target.closest('button[data-vrep]') : null;
+  if (!b) return;
+  const t = parseFloat(b.getAttribute('data-vrep'));
+  $('summary').classList.add('hidden');
+  state.ended = false;
+  if (!replaySeekTo(Math.max(0, t - 60))) { log('err', 'That moment is no longer in the buffer.'); return; }
+  state.replay.scrubbing = true;
+  replayBarVisible(true);
+  togglePause(false);
+  state.speed = 1;
+  updateSpeedButtons();
+  syncScrub();
+  log('sys', 'Replaying from 60 seconds before the loss. Press LIVE to return.');
+});
+
+/* ============================================================================
  * SECTION 13 — SELF-TESTS
  * A set of invariant checks that run on load. They exercise the real functions
  * the simulation uses, in a sandbox that saves and restores live state, so
@@ -5190,30 +7253,25 @@ window.addEventListener('resize', () => { resizeCanvas(); });
 
 let logSuppressed = false;
 
-/** Run `fn` against an empty, calm, deterministic world; always restore after. */
+/**
+ * Run `fn` against an empty, calm, deterministic world; always restore after.
+ *
+ * Every own property of `state` is captured and put back, rather than an
+ * enumerated list: a test that reaches for a field nobody thought of can then
+ * never leak it into the live session. The sandbox also swaps in fresh mutable
+ * containers, so in-place mutation inside a test cannot touch live objects.
+ */
 function withSandbox(fn) {
-  const saved = {
-    aircraft:state.aircraft, removalQueue:state.removalQueue, conflicts:state.conflicts,
-    score:state.score, selectedId:state.selectedId, simTime:state.simTime,
-    nextId:state.nextId, usedCallsigns:state.usedCallsigns, rng:state.rng,
-    cells:state.cells, alerts:state.alerts, nextSpawnIn:state.nextSpawnIn,
-    scenario:state.scenario, ended:state.ended, conflictTimer:state.conflictTimer,
-    trafficRate:state.trafficRate, wind:state.wind, windDrift:state.windDrift,
-    pilotRealism:state.pilotRealism, radarRealism:state.radarRealism,
-    radarMode:state.radarMode, coordination:state.coordination,
-    autoRunwayChange:state.autoRunwayChange, script:state.script, mit:state.mit,
-    metar:state.metar, shearRate:state.shearRate, activeArr:state.activeArr,
-    activeDep:state.activeDep, rwyChange:state.rwyChange, coord:state.coord,
-    groundStopUntil:state.groundStopUntil, lastLanding:state.lastLanding,
-    wakeLogged:state.wakeLogged, replay:state.replay, multiSelect:state.multiSelect,
-    undo:state.undo, workload:state.workload, sessionLength:state.sessionLength,
-    paused:state.paused
-  };
+  const saved = {};
+  for (const k in state) saved[k] = state[k];
+  const savedView = { cx:state.view.cx, cy:state.view.cy, pxPerNm:state.view.pxPerNm, rot:state.view.rot };
+
   state.aircraft = []; state.removalQueue = []; state.conflicts = new Map();
   state.score = freshScore(); state.selectedId = null; state.simTime = 0;
   state.nextId = 1; state.usedCallsigns = new Set(); state.cells = [];
   state.alerts = { advisories:0, violations:0 }; state.nextSpawnIn = 1e9;
   state.multiSelect = new Set(); state.undo = []; state.workload = [];
+  state.sequence = []; state.tools = { mode:null, rbl:null, cpa:[] };
   state.ended = false; state.conflictTimer = 0; state.wind = { dirFrom:270, speed:0 };
   state.windDrift = 0;
   state.sessionLength = 0;          // tests never trip the end-of-session path
@@ -5223,6 +7281,14 @@ function withSandbox(fn) {
   state.radarMode = 'smooth';
   state.coordination = false;
   state.autoRunwayChange = false;
+  state.autoController = false;
+  state.aiPlans = new Map(); state.aiTimer = 0;
+  state.advisor = false; state.hints = false;
+  state.pauseOnConflict = false; state.pauseOnArrival = false;
+  state.declutter = 'full'; state.colourMode = 'kind'; state.colourBlind = false;
+  state.filtLo = 0; state.filtHi = 60000;
+  state.hotSeat = 'both'; state.notifyOnFix = false; state.profileOpen = false;
+  state.tutorial = null;
   state.script = null;
   state.mit = {};
   state.metar = { ceiling:8000, vis:10, targetCeiling:8000, targetVis:10,
@@ -5236,8 +7302,15 @@ function withSandbox(fn) {
   state.replay = { recording:false, scrubbing:false, frames:[], lastAt:-999 };
   state.coord = { pending:[], nextIn:1e9, seq:0 };
   logSuppressed = true;
-  try { return fn(); }
-  finally { logSuppressed = false; Object.assign(state, saved); }
+  try {
+    return fn();
+  } finally {
+    logSuppressed = false;
+    for (const k of Object.keys(state)) if (!(k in saved)) delete state[k];
+    for (const k in saved) state[k] = saved[k];
+    state.view.cx = savedView.cx; state.view.cy = savedView.cy;
+    state.view.pxPerNm = savedView.pxPerNm; state.view.rot = savedView.rot;
+  }
 }
 
 /** Minimal airborne aircraft for tests; not registered with the sim. */
@@ -5700,6 +7773,181 @@ function runSelfTests() {
   }));
 
   /* ---------- storage ---------- */
+  check('the rotated scope transform still round trips', () => {
+    const saved = { cx:state.view.cx, cy:state.view.cy, px:state.view.pxPerNm, rot:state.view.rot };
+    let bad = null;
+    for (const rot of [0, 90, 140, 270, 359]) {
+      state.view.cx = 2; state.view.cy = -3; state.view.pxPerNm = 9.5; state.view.rot = rot;
+      for (const pt of [{x:0,y:0},{x:-28,y:19},{x:31,y:-22},{x:5.5,y:-0.25}]) {
+        const sc = worldToScreen(pt.x, pt.y);
+        const w = screenToWorld(sc.sx, sc.sy);
+        if (Math.abs(w.x - pt.x) > 1e-9 || Math.abs(w.y - pt.y) > 1e-9) {
+          bad = 'rot ' + rot + ' failed for ' + JSON.stringify(pt);
+        }
+      }
+      /* the chosen bearing must actually point up the screen */
+      const v = vecFromHeading(rot, 10);
+      const up = worldToScreen(state.view.cx + v.x, state.view.cy + v.y);
+      const mid = worldToScreen(state.view.cx, state.view.cy);
+      if (Math.abs(up.sx - mid.sx) > 1e-6 || !(up.sy < mid.sy)) {
+        bad = 'rot ' + rot + ' does not put that bearing at the top';
+      }
+    }
+    Object.assign(state.view, saved);
+    return bad ? bad : true;
+  });
+
+  check('data blocks stay on the scope and size to their content', () => withSandbox(() => {
+    const list = [];
+    for (let i = 0; i < 16; i++) {
+      list.push(testAircraft({ x:(i % 4) * 0.5 - 1, y:Math.floor(i / 4) * 0.5, alt:9000 + i * 300,
+                               tag:'sz' + i }));
+    }
+    state.aircraft = list;
+    state.selectedId = list[0].id;
+    list[1].blockExpanded = true;
+    layoutDataBlocks(); layoutDataBlocks();
+    let off = 0;
+    for (const ac of list) {
+      const r = ac.blockRect;
+      if (!r) return ac.callsign + ' has no block';
+      if (r.x < -1 || r.y < -1 || r.x + r.w > cssW + 1 || r.y + r.h > cssH + 1) off++;
+      const want = blockSize(ac);
+      if (Math.abs(r.h - want.h) > 0.01) return 'block height does not match its content';
+    }
+    if (off) return off + ' block(s) pushed off the scope';
+    if (!(blockSize(list[0]).h > blockSize(list[5]).h)) return 'the expanded block is not taller';
+    return true;
+  }));
+
+  check('altitude filter and declutter hide what they say they hide', () => withSandbox(() => {
+    const lo = testAircraft({ alt:5000, tag:'f1' });
+    const hi = testAircraft({ alt:33000, tag:'f2' });
+    state.aircraft = [lo, hi];
+    state.filtLo = 10000; state.filtHi = 40000;
+    if (passesFilter(lo)) return 'a low aircraft passed a 10000 ft floor';
+    if (!passesFilter(hi)) return 'a high aircraft was filtered out wrongly';
+    state.filtLo = 0; state.filtHi = 60000;
+    if (!passesFilter(lo) || !passesFilter(hi)) return 'clearing the filter did not restore both';
+    state.declutter = 'limited';
+    state.selectedId = null;
+    if (blockLines(lo).length !== 1) return 'limited declutter should leave one line';
+    state.declutter = 'full';
+    if (blockLines(lo).length < 3) return 'full declutter should show the whole block';
+    return true;
+  }));
+
+  check('the resolution advisor proposes something actionable', () => withSandbox(() => {
+    const a = testAircraft({ x:0, y:0, alt:12000, hdg:90, tag:'ad1' });
+    const b = testAircraft({ x:14, y:0, alt:12000, hdg:270, tag:'ad2' });
+    a.kind = 'overflight'; b.kind = 'overflight';
+    state.aircraft = [a, b];
+    state.advisor = true;
+    detectConflicts();
+    const adv = currentAdvisories();
+    if (!adv.length) return 'head-on pair produced no advisory';
+    const fix = adv[0].fix;
+    if (!fix || !fix.text) return 'no resolution proposed';
+    if (fix.cmd) {
+      state.selectedId = a.id;
+      if (!executeCommandLine(fix.cmd)) return 'the proposed command was refused: ' + fix.cmd;
+    }
+    return true;
+  }));
+
+  check('hints name the next action for each kind of traffic', () => withSandbox(() => {
+    const arr = commitSpawn(spawnArrivalAt('TANGO', 12000, 'HNT001'));
+    const dep = commitSpawn(spawnDepartureNow('HNT002'));
+    if (!arr) return 'no arrival to hint about';
+    const h1 = hintFor(arr);
+    if (!h1 || h1.length < 5) return 'no hint for an arrival';
+    if (dep) { const h2 = hintFor(dep); if (!h2) return 'no hint for a departure'; }
+    arr.nordo = true;
+    if (!/NORDO/.test(hintFor(arr))) return 'a NORDO aircraft was not called out';
+    return true;
+  }));
+
+  check('the AI controller lands traffic without help', () => withSandbox(() => {
+    state.autoController = true;
+    state.aiPlans = new Map();
+    state.aiTimer = 0;
+    state.trafficRate = 0;
+    state.nextSpawnIn = 1e9;
+    commitSpawn(spawnArrivalAt('TANGO', 12000, 'AI0001'));
+    commitSpawn(spawnArrivalAt('SIERRA', 11000, 'AI0002'));
+    for (let i = 0; i < 60 * 60 * 25 && state.aircraft.length; i++) stepSim(DT);
+    state.autoController = false;
+    if (state.score.landings < 2) {
+      return 'AI landed only ' + state.score.landings + ' of 2 (go-arounds ' +
+             state.score.goArounds + ', busts ' + state.score.busts + ')';
+    }
+    return true;
+  }));
+
+  check('efficiency accounting never runs backwards', () => withSandbox(() => {
+    state.autoController = true;
+    state.aiPlans = new Map();
+    state.aiTimer = 0;
+    state.trafficRate = 26;
+    state.nextSpawnIn = 0;
+    state.scenario = 'rush';
+    let lastFlown = -1, lastIdeal = -1;
+    for (let block = 0; block < 6; block++) {
+      for (let i = 0; i < 60 * 60 * 3; i++) stepSim(DT);
+      const e = efficiencyStats();
+      if (e.flown < lastFlown - 1e-6) return 'flown track miles decreased';
+      if (e.ideal < lastIdeal - 1e-6) return 'direct-route miles decreased';
+      if (e.extra < 0) return 'extra miles went negative';
+      if (e.flown + 1e-6 < e.ideal) {
+        return 'flown (' + e.flown.toFixed(0) + ') is below direct (' + e.ideal.toFixed(0) + ')';
+      }
+      if (!(e.efficiency >= 0 && e.efficiency <= 1)) return 'efficiency out of range';
+      lastFlown = e.flown; lastIdeal = e.ideal;
+    }
+    state.autoController = false;
+    if (lastFlown <= 0) return 'no traffic was generated to measure';
+    return true;
+  }));
+
+  check('the session report and CSV export are well formed', () => withSandbox(() => {
+    commitSpawn(spawnArrivalAt('TANGO', 12000, 'RPT001'));
+    for (let i = 0; i < 200; i++) stepSim(DT);
+    const txt = summaryText();
+    if (txt.indexOf('SECTOR 24 SESSION REPORT') !== 0) return 'report has no header';
+    for (const need of ['RESULT', 'EFFICIENCY', 'SEPARATION LOSSES', 'TRAFFIC', 'SESSION CODE']) {
+      if (txt.indexOf(need) < 0) return 'report is missing the ' + need + ' section';
+    }
+    const csv = summaryCsv();
+    const head = csv.split('\n')[0];
+    if (head !== 'time,callsign,type,kind,outcome,delay_s,emergency') return 'CSV header wrong: ' + head;
+    for (const line of csv.split('\n')) {
+      const quotes = (line.match(/"/g) || []).length;
+      if (quotes % 2 !== 0) return 'unbalanced quoting in the CSV';
+    }
+    const code = sessionCode();
+    if (parseScript(code).errors.length) return 'the session code does not parse as a script';
+    return true;
+  }));
+
+  check('the test sandbox leaks nothing into the live session', () => {
+    const before = {};
+    for (const k in state) before[k] = state[k];
+    withSandbox(() => {
+      /* Deliberately scribble on a spread of live-session fields. */
+      state.advisor = true; state.hints = true; state.autoController = true;
+      state.declutter = 'symbol'; state.filtLo = 25000; state.hotSeat = 'arr';
+      state.trafficRate = 39; state.scenario = 'rush'; state.activeArr = '09';
+      state.pilotRealism = true; state.radarMode = 'slow'; state.speed = 8;
+      state.somethingNobodyThoughtOf = 42;
+      state.aircraft.push(testAircraft({ tag:'leak' }));
+      return true;
+    });
+    const diffs = [];
+    for (const k in before) if (state[k] !== before[k]) diffs.push(k);
+    for (const k in state) if (!(k in before)) diffs.push('+' + k);
+    return diffs.length ? 'leaked: ' + diffs.join(', ') : true;
+  });
+
   check('no browser storage is used anywhere', () => {
     const src = Array.from(document.getElementsByTagName('script'))
       .map(s => s.textContent || '').join('\n');
@@ -5737,21 +7985,42 @@ function renderSelfTests(results) {
  * ========================================================================== */
 
 function populateSelects() {
-  $('selFix').innerHTML = FIXES.map(f =>
+  const fixOpts = FIXES.map(f =>
     '<option value="' + f.name + '">' + f.name + '</option>').join('');
+  $('selFix').innerHTML = fixOpts;
+  $('selMitFix').innerHTML = FIXES.filter(f => f.edge || !f.gate)
+    .map(f => '<option value="' + f.name + '">' + f.name + '</option>').join('');
   $('selRwy').innerHTML = RUNWAYS.map(r =>
     '<option value="' + r.id + '"' + (r.id === '27' ? ' selected' : '') + '>RWY ' + r.id + '</option>').join('');
+  $('selNewRwy').innerHTML = RUNWAYS.map(r =>
+    '<option value="' + r.id + '">RWY ' + r.id + '</option>').join('');
+  $('selHighlight').innerHTML = '<option value="">nothing</option>' +
+    '<optgroup label="Fixes">' + fixOpts + '</optgroup>' +
+    '<optgroup label="Procedures">' +
+    PROCEDURES.map(pr => '<option value="' + pr.id + '">' + pr.id + '</option>').join('') +
+    '</optgroup>';
 }
 
-let uiAccum = 0;
+let uiAccum = 0, uiSlowAccum = 0;
 function uiTick(dtReal) {
   uiAccum += dtReal;
+  uiSlowAccum += dtReal;
   if (uiAccum < 0.16) return;                 // ~6 Hz is plenty for text panels
   uiAccum = 0;
   updateStrips(false);
   updateSidePanel();
   updateScore();
   updateOverlays();
+  updateTutorial();
+  if (state.replay.scrubbing) syncScrub();
+
+  /* The heavier panels only need refreshing about once a second, and only
+     while they are actually on screen. */
+  if (uiSlowAccum >= 1.0) {
+    uiSlowAccum = 0;
+    if ($('tabAnalysis').classList.contains('on')) renderAnalysis();
+    if ($('tabSector').classList.contains('on')) renderSectorTab();
+  }
 }
 
 function frame(ts) {
