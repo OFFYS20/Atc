@@ -56,8 +56,16 @@ light behind a super, plus 2 NM more under low-visibility procedures.
 Departures start at a stand. They need pushback, then taxi themselves to the holding
 point and queue; you decide the order off the runway with `LUAW` and `TO`. A takeoff
 clearance is refused if the runway is occupied, if something is inside 4 NM on final,
-or during a ground stop. Landing aircraft vacate and ask to cross the other runway on
-their way to the apron (`XR`). The whole layer can be switched off.
+or during a ground stop.
+
+The aerodrome is laid out the way a real one is: a taxiway alongside each runway on the
+apron's side, an entry at every threshold, angled exits in both directions, and one
+square crossing of 09/27 to reach 14/32. It is derived from wherever the runways and the
+apron are, so an imported airspace gets a sensible ground layout too, and aircraft drive
+exactly the lines that are drawn. Anything going to or from 14/32 stops at the bar and
+asks to cross (`XR`); a crossing is refused with anything inside 5 NM on final, and the
+aircraft is on the runway until it is clear the other side. The whole layer can be
+switched off.
 
 ![the aerodrome](docs/ground.png)
 
@@ -206,7 +214,7 @@ t=420  rwy 09
 
 ## Self-tests
 
-50 invariant checks run on load — angle wrapping, shortest-arc turns, turn and
+51 invariant checks run on load — angle wrapping, shortest-arc turns, turn and
 altitude capture stability, separation symmetry, the 5.0 NM / 1000 ft boundary case,
 pair-once conflict evaluation, alert hysteresis, accumulator conservation, hold entry
 classification, command-parser robustness, the approach envelope, removal sweeps and
@@ -215,7 +223,8 @@ spacing monotonicity, the rotated transform round-trip, data block layout and si
 the advisor and hint output, the AI controller actually landing traffic, the full
 ground sequence from stand to airborne, runway exclusivity, campaign judging, airspace
 export round-tripping, refusal of a broken airspace, real-world coordinate conversion,
-the vertical split in both directions, the second airport, export formatting,
+the vertical split in both directions, the second airport, taxiing along the drawn
+taxiways and stopping short of a runway to be crossed, export formatting,
 efficiency accounting, that every lesson is structurally complete and its step
 predicates answer yes or no against an empty world, that every command a lesson tells
 you to type is one the parser actually accepts, and that the test sandbox leaks

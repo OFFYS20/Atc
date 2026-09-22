@@ -858,11 +858,17 @@ canvas.spark{display:block;width:100%;height:46px;background:#070f14;border:1px 
       <tr><td>LUAW</td><td>line up runway and wait</td></tr>
       <tr><td>TO</td><td>cleared for takeoff</td></tr>
       <tr><td>HS</td><td>vacate and hold short again</td></tr>
-      <tr><td>XR</td><td>approve a landing aircraft's runway crossing</td></tr>
+      <tr><td>XR</td><td>approve a runway crossing</td></tr>
     </table>
+    <p>Each runway has a taxiway alongside it on the apron's side, and aircraft drive along the
+       taxiways drawn on the scope. 14/32 lies beyond 09/27, so anything going to or from it
+       stops at the yellow bar and asks to cross: a runway-32 departure on the way out, a
+       runway-32 arrival on the way in. An aircraft crossing is on the runway until it is clear
+       the other side.</p>
     <p>A takeoff clearance is refused if the runway is occupied, if something is inside 4 NM on
-       final to it, or during a ground stop. Zoom in past 14 px/NM to see the aerodrome; the
-       queue is always listed on the SECTOR tab.</p>
+       final to it, or during a ground stop. A crossing is refused if the runway is occupied or
+       anything is inside 5 NM on final. Zoom in past 14 px/NM to see the aerodrome; the queue
+       is always listed on the SECTOR tab.</p>
 
     <h3>Sector instructions (not addressed to an aircraft)</h3>
     <table class="cmds">
@@ -1593,8 +1599,10 @@ let RUNWAYS = (function () {
   return [
     build('09', 90,  0.0,  0.60, 1.05, 'R1', 'KSIM'),
     build('27', 270, 0.0,  0.60, 1.05, 'R1', 'KSIM'),
-    build('14', 140, -0.20,-0.30, 0.90, 'R2', 'KSIM'),
-    build('32', 320, -0.20,-0.30, 0.90, 'R2', 'KSIM'),
+    /* Far enough south-west of 09/27 that a taxiway fits between the two
+       strips instead of running down the side of the other runway. */
+    build('14', 140, -0.35,-1.05, 0.90, 'R2', 'KSIM'),
+    build('32', 320, -0.35,-1.05, 0.90, 'R2', 'KSIM'),
     /* the satellite field, one strip, radar approaches only */
     build('05', 50,  -19.0, 15.0, 0.75, 'R3', 'KRDG'),
     build('23', 230, -19.0, 15.0, 0.75, 'R3', 'KRDG')
@@ -1602,57 +1610,200 @@ let RUNWAYS = (function () {
 })();
 
 /* --- the ground ----------------------------------------------------------
- * A deliberately simple aerodrome: one apron, a holding point beside each
- * runway threshold, and straight taxi routes between them. Enough to build a
- * departure queue, hold someone short, line them up, and have a landing
- * aircraft ask to cross the other runway on its way in.
+ * A small aerodrome, but laid out the way one really is. Every strip gets a
+ * taxiway running its length on the side the apron is on, with a holding
+ * point at each end; the apron joins whichever of those taxiways is nearest
+ * by a short stub, and anything beyond that runway is reached by carrying
+ * straight on across it. Nothing here is hand-placed: it is all derived from
+ * where the runways and the apron are, so an imported airspace gets a
+ * sensible ground layout too. The same geometry is what the scope draws and
+ * what the aircraft drive along, so the picture cannot disagree with them.
  * ------------------------------------------------------------------------ */
 let APRON = { x: -0.15, y: 1.75 };
+const APRON_W = 1.70;          // NM, the drawn apron
+const APRON_H = 0.80;
+const TAXI_OFFSET_NM = 0.22;   // taxiway centreline, out from the runway centreline
+const TAXI_END_NM = 0.12;      // how far past a threshold its holding point sits
 const TAXI_KT = 22;            // ground speed while taxiing
 const PUSHBACK_S = 45;         // how long a pushback takes
+const HOLD_SHORT_NM = 0.15;    // where an aircraft stops before a runway it must cross:
+                               // clear of the runway edge, short of the parallel taxiway
 
-/** The holding point beside a runway's threshold. */
-function holdingPoint(rwy) {
-  return { x: rwy.thr.x + rwy.right.x * 0.22 - rwy.u.x * 0.12,
-           y: rwy.thr.y + rwy.right.y * 0.22 - rwy.u.y * 0.12 };
+/**
+ * The side of a strip the apron is on, as a unit vector out from the
+ * centreline. `right` flips between the two directions of one strip, so this
+ * is taken from the apron rather than from the runway, and both ends of a
+ * strip then agree on which side their taxiway is.
+ */
+function taxiSide(rwy) {
+  const d = (APRON.x - rwy.thr.x) * rwy.right.x + (APRON.y - rwy.thr.y) * rwy.right.y;
+  const sign = d >= 0 ? 1 : -1;
+  return { x: rwy.right.x * sign, y: rwy.right.y * sign };
 }
 
-/** Where an aircraft that has just landed leaves the runway. */
+/** The holding point beside a runway's threshold, on that strip's taxiway. */
+function holdingPoint(rwy) {
+  const t = taxiSide(rwy);
+  return { x: rwy.thr.x + t.x * TAXI_OFFSET_NM - rwy.u.x * TAXI_END_NM,
+           y: rwy.thr.y + t.y * TAXI_OFFSET_NM - rwy.u.y * TAXI_END_NM };
+}
+
+/* A landing aircraft leaves by an angled exit that leaves the centreline
+   part-way down the strip and joins the taxiway a little further on. */
+const EXIT_AT = 0.60;          // fraction of the runway length where the exit leaves
+const EXIT_RUN_NM = 0.30;      // along-track distance the exit takes to reach the taxiway
+const EXIT_KT = 40;            // roll-out speed down the runway to the exit
+
+/** Where the exit leaves the runway centreline. */
+function exitStart(rwy) {
+  const d = rwy.len * EXIT_AT;
+  return { x: rwy.thr.x + rwy.u.x * d, y: rwy.thr.y + rwy.u.y * d };
+}
+
+/** Where the exit joins the taxiway: the aircraft is clear of the runway here. */
 function exitPoint(rwy) {
-  return { x: rwy.thr.x + rwy.u.x * 1.25 + rwy.right.x * 0.22,
-           y: rwy.thr.y + rwy.u.y * 1.25 + rwy.right.y * 0.22 };
+  const t = taxiSide(rwy);
+  const d = rwy.len * EXIT_AT + EXIT_RUN_NM;
+  return { x: rwy.thr.x + rwy.u.x * d + t.x * TAXI_OFFSET_NM,
+           y: rwy.thr.y + rwy.u.y * d + t.y * TAXI_OFFSET_NM };
+}
+
+/** The point on segment a-b closest to p. */
+function closestOnSegment(p, a, b) {
+  const vx = b.x - a.x, vy = b.y - a.y;
+  const len2 = vx * vx + vy * vy;
+  if (len2 < 1e-9) return { x:a.x, y:a.y };
+  const t = clamp(((p.x - a.x) * vx + (p.y - a.y) * vy) / len2, 0, 1);
+  return { x: a.x + vx * t, y: a.y + vy * t };
+}
+
+/** Where two segments cross, or null if they do not. */
+function segmentCrossing(p1, p2, p3, p4) {
+  const r = { x: p2.x - p1.x, y: p2.y - p1.y };
+  const s = { x: p4.x - p3.x, y: p4.y - p3.y };
+  const den = r.x * s.y - r.y * s.x;
+  if (Math.abs(den) < 1e-12) return null;                  // parallel
+  const qp = { x: p3.x - p1.x, y: p3.y - p1.y };
+  const t = (qp.x * s.y - qp.y * s.x) / den;
+  const u = (qp.x * r.y - qp.y * r.x) / den;
+  if (t < 0 || t > 1 || u < 0 || u > 1) return null;
+  return { x: p1.x + r.x * t, y: p1.y + r.y * t, t };
 }
 
 /**
- * Does the taxi route from `from` to the apron cross another runway? Two
- * runways that are not the one just vacated are checked; the crossing has to
- * be approved before the aircraft will move.
+ * The taxiway system: one lane per strip, the stub from the apron to the
+ * nearest lane, and a spine carrying straight on from there to every other
+ * lane. Cheap enough to rebuild whenever it is wanted, which keeps it honest
+ * when the airspace is edited underneath it.
  */
-function crossingRunwayFor(fromPt, exceptPhys) {
+function taxiNetwork() {
+  const lanes = [];
+  const seen = new Set();
   for (const r of RUNWAYS) {
-    if (r.apt !== FIELD.id) continue;          // only the primary has a ground layer
-    if (r.phys === exceptPhys) continue;
-    if (r.id !== '27' && r.id !== '14') continue;          // one entry per strip
-    const d = distToSegment(APRON.x, APRON.y, r.thr.x, r.thr.y, r.end.x, r.end.y);
-    const d2 = distToSegment(fromPt.x, fromPt.y, r.thr.x, r.thr.y, r.end.x, r.end.y);
-    /* the apron is on one side and the exit on the other */
-    if (d2 < 0.6 || d < 0.6) continue;
-    const seg = distToSegment((APRON.x + fromPt.x) / 2, (APRON.y + fromPt.y) / 2,
-                              r.thr.x, r.thr.y, r.end.x, r.end.y);
-    if (seg < 0.35) return r;
+    if (r.apt !== FIELD.id || seen.has(r.phys)) continue;   // only the primary field
+    seen.add(r.phys);
+    const t = taxiSide(r);
+    const off = (p, back) => ({ x: p.x + t.x * TAXI_OFFSET_NM - r.u.x * TAXI_END_NM * back,
+                                y: p.y + t.y * TAXI_OFFSET_NM - r.u.y * TAXI_END_NM * back });
+    lanes.push({ phys:r.phys, a: off(r.thr, 1), b: off(r.end, -1), join:null });
   }
-  return null;
+  if (!lanes.length) return { lanes:[], links:[], entries:[], exits:[], main:null, foot:null };
+
+  /* The apron joins whichever lane it is closest to. */
+  let main = lanes[0], foot = closestOnSegment(APRON, main.a, main.b);
+  for (const l of lanes) {
+    const f = closestOnSegment(APRON, l.a, l.b);
+    if (dist(APRON.x, APRON.y, f.x, f.y) < dist(APRON.x, APRON.y, foot.x, foot.y)) {
+      main = l; foot = f;
+    }
+  }
+  main.join = foot;
+  const links = [{ from:{ x:APRON.x, y:APRON.y }, to:foot }];
+
+  /* Every runway end: an entry from its holding point to the threshold, and
+     the exit a landing in that direction turns off by. */
+  const entries = [], exits = [];
+  for (const r of RUNWAYS) {
+    if (r.apt !== FIELD.id) continue;
+    entries.push({ rwy:r, from: holdingPoint(r), to: { x:r.thr.x, y:r.thr.y } });
+    exits.push({ rwy:r, from: exitStart(r), to: exitPoint(r) });
+  }
+
+  /* Everything else hangs off the same spine, carried straight on past the
+     near runway until it runs into that lane. */
+  const dx = foot.x - APRON.x, dy = foot.y - APRON.y;
+  const n = Math.hypot(dx, dy) || 1;
+  const far = { x: foot.x + dx / n * 40, y: foot.y + dy / n * 40 };
+  for (const l of lanes) {
+    if (l === main) continue;
+    l.join = segmentCrossing(foot, far, l.a, l.b) || closestOnSegment(foot, l.a, l.b);
+    links.push({ from:foot, to:l.join });
+  }
+  return { lanes, links, entries, exits, main, foot };
 }
 
-/** Everything sitting on, or about to sit on, a strip of concrete. */
+/**
+ * The waypoints between the apron and a point that sits on a runway's taxiway
+ * — a holding point, or where a landing aircraft turns off. `toApron`
+ * reverses it for one that has just landed.
+ */
+function taxiPath(rwy, edgePoint, toApron) {
+  const net = taxiNetwork();
+  const pts = [{ x:APRON.x, y:APRON.y }];
+  if (net.foot) pts.push(net.foot);
+  const lane = rwy ? net.lanes.find(l => l.phys === rwy.phys) : null;
+  if (lane && lane !== net.main && lane.join) pts.push(lane.join);
+  pts.push({ x:edgePoint.x, y:edgePoint.y });
+  const out = pts.filter((p, i) => i === 0 || dist(p.x, p.y, pts[i - 1].x, pts[i - 1].y) > 0.03);
+  return toApron ? out.reverse() : out;
+}
+
+/**
+ * The first runway the leg from `ac` to `to` would take it across, with the
+ * point to stop at short of it. A crossing has to be approved before the
+ * aircraft will drive it.
+ */
+function legCrossing(ac, to) {
+  const from = { x:ac.x, y:ac.y };
+  const seen = new Set();
+  let best = null;
+  for (const r of RUNWAYS) {
+    if (r.apt !== FIELD.id || seen.has(r.phys)) continue;
+    seen.add(r.phys);
+    const hit = segmentCrossing(from, to, r.thr, r.end);
+    if (!hit) continue;
+    if (!best || hit.t < best.hit.t) best = { rwy:r, hit };
+  }
+  if (!best) return null;
+  /* Name the crossing after the end in use: "hold short of 27" while 27 is
+     the landing runway, not whichever end happens to be listed first. */
+  const inUse = RUNWAYS.find(r => r.phys === best.rwy.phys &&
+                                  (r.id === state.activeArr || r.id === state.activeDep));
+  if (inUse) best.rwy = inUse;
+  const d = dist(from.x, from.y, best.hit.x, best.hit.y);
+  const k = d > 1e-6 ? Math.min(HOLD_SHORT_NM, d) / d : 0;
+  return { rwy: best.rwy,
+           hold: { x: best.hit.x + (from.x - best.hit.x) * k,
+                   y: best.hit.y + (from.y - best.hit.y) * k } };
+}
+
+/**
+ * Everything sitting on, or about to sit on, a strip of concrete. An aircraft
+ * holding short is beside the runway, not on it; one that has been cleared
+ * across is on it until it is clear the other side.
+ */
 function groundOccupants(phys) {
   const out = [];
   for (const a of state.aircraft) {
     if (!a.alive) continue;
-    const r = getRunway(a.departureRwy || a.rolloutRwy || a.crossingRwy);
+    if (a.phase === 'taxi' && a.crossApproved && a.crossingRwy) {
+      const c = getRunway(a.crossingRwy);
+      if (c && c.phys === phys) out.push(a);
+      continue;
+    }
+    const r = getRunway(a.departureRwy || a.rolloutRwy);
     if (!r || r.phys !== phys) continue;
-    if (a.phase === 'takeoff' || a.phase === 'rollout' || a.phase === 'lineup' ||
-        a.phase === 'crossing') out.push(a);
+    if (a.phase === 'takeoff' || a.phase === 'rollout' || a.phase === 'lineup') out.push(a);
   }
   return out;
 }
@@ -2139,7 +2290,7 @@ function spawnArrivalAt(entryName, altWanted, callsign) {
 
 function spawnDeparture(rng) { return spawnDepartureNow(null); }
 
-function spawnDepartureNow(callsign) {
+function spawnDepartureNow(callsign, forceRwy) {
   const rng = state.rng;
   if (state.groundStopUntil && state.simTime < state.groundStopUntil) return null;
   if (!state.groundOps) {
@@ -2149,7 +2300,8 @@ function spawnDepartureNow(callsign) {
   }
   /* Most traffic uses the runway in use; some takes the other strip. */
   const other = (state.activeDep === '27' || state.activeDep === '09') ? '32' : '27';
-  const rwyId = rng.chance(0.68) ? state.activeDep : other;
+  const drawn = rng.chance(0.68) ? state.activeDep : other;   // drawn either way: replay
+  const rwyId = forceRwy || drawn;
   const rwy   = getRunway(rwyId) || getRunway(state.activeDep);
   if (!rwy) return null;
   if (state.groundOps && countOnGround() >= 6) return null;   // apron is full
@@ -2882,11 +3034,12 @@ const GROUND_PHASES = ['stand','pushback','taxi','holdShort','lineup','takeoff',
 function onGround(ac) { return GROUND_PHASES.indexOf(ac.phase) >= 0; }
 
 /** Move toward a point at taxi speed. Returns true once it is there. */
-function taxiToward(ac, target, dt) {
+function taxiToward(ac, target, dt, kt) {
+  const speed = kt || TAXI_KT;
   const d = dist(ac.x, ac.y, target.x, target.y);
-  const step = TAXI_KT / 3600 * dt;
+  const step = speed / 3600 * dt;
   ac.alt = FIELD.elev; ac.vs = 0;
-  ac.ias = ac.gs = TAXI_KT;
+  ac.ias = ac.gs = speed;
   if (d <= step || d < 1e-6) {
     ac.x = target.x; ac.y = target.y; ac.ias = ac.gs = 0;
     return true;
@@ -2928,26 +3081,45 @@ function groundUpdate(ac, dt) {
       ac.pushbackT -= dt;
       ac.hdg = ac.assignedHdg = normalizeHeading(ac.hdg + 40 * dt);   // swinging round
       if (ac.pushbackT <= 0) {
+        const dep = rwy || getRunway(state.activeDep);
         ac.phase = 'taxi';
-        ac.ground = { target: holdingPoint(rwy || getRunway(state.activeDep)), why:'holding point' };
+        ac.ground = { path: taxiPath(dep, holdingPoint(dep), false), i:0, why:'holding point' };
         log('pilot', ac.callsign + ' pushback complete, taxiing to holding point runway ' +
             ac.departureRwy + '.');
       }
       break;
 
     case 'taxi': {
-      if (!ac.ground) { ac.phase = 'holdShort'; break; }
-      if (taxiToward(ac, ac.ground.target, dt)) {
-        if (ac.kind === 'departure') {
-          ac.phase = 'holdShort';
-          ac.readyAt = state.simTime;
-          ac.hdg = ac.assignedHdg = rwy ? rwy.hdg : ac.hdg;
-          log('pilot', ac.callsign + ' holding short runway ' + ac.departureRwy +
-              ', number ' + queuePosition(ac) + ', ready for departure.');
-        } else {
-          markForRemoval(ac, 'landed');           // an arrival has reached the apron
+      const g = ac.ground;
+      if (!g || !g.path || g.i >= g.path.length) { endOfTaxi(ac, rwy); break; }
+      const leg = g.path[g.i];
+      if (ac.crossApproved && ac.crossingRwy) {
+        /* Across, and clear the other side: the runway is free again. */
+        const cr = getRunway(ac.crossingRwy);
+        if (!cr || (!legCrossing(ac, leg) &&
+            distToSegment(ac.x, ac.y, cr.thr.x, cr.thr.y, cr.end.x, cr.end.y) >= HOLD_SHORT_NM - 0.02)) {
+          ac.crossApproved = false;
+          ac.crossingRwy = null;
         }
-        ac.ground = null;
+      } else if (state.groundOps) {
+        /* A leg that would take it over a runway is not driven until it has
+           been approved; it stops at the hold-short line instead. */
+        const x = legCrossing(ac, leg);
+        if (x) {
+          if (taxiToward(ac, x.hold, dt)) {
+            ac.phase = 'crossing';
+            ac.crossingRwy = x.rwy.id;
+            ac.crossApproved = false;
+            ac.hdg = ac.assignedHdg = bearingTo(ac.x, ac.y, leg.x, leg.y);
+            log('pilot', ac.callsign + ' is holding short of runway ' + x.rwy.id +
+                ', request crossing.');
+          }
+          break;
+        }
+      }
+      if (taxiToward(ac, leg, dt)) {
+        g.i++;
+        if (g.i >= g.path.length) endOfTaxi(ac, rwy);
       }
       break;
     }
@@ -2969,20 +3141,19 @@ function groundUpdate(ac, dt) {
       break;
 
     case 'vacating': {
-      const target = ac.ground ? ac.ground.target : exitPoint(getRunway(ac.rolloutRwy));
-      if (taxiToward(ac, target, dt)) {
-        const r = getRunway(ac.rolloutRwy);
-        const cross = state.groundOps ? crossingRunwayFor(target, r ? r.phys : null) : null;
-        if (cross) {
-          ac.phase = 'crossing';
-          ac.crossingRwy = cross.id;
-          ac.crossApproved = false;
-          log('pilot', ac.callsign + ' is holding short of runway ' + cross.id +
-              ', request crossing to the apron.');
-        } else {
+      const r = getRunway(ac.rolloutRwy) || getRunway(state.activeArr);
+      const g = ac.ground && ac.ground.path ? ac.ground : { path:[exitPoint(r)], i:0 };
+      const onRunway = g.i < g.path.length - 1;       // still rolling down the centreline
+      if (taxiToward(ac, g.path[g.i], dt, onRunway ? EXIT_KT : TAXI_KT)) {
+        g.i++;
+        if (g.i >= g.path.length) {
+          /* Clear of the runway and on its taxiway: now find the way in. */
+          const here = { x:ac.x, y:ac.y };
           ac.phase = 'taxi';
           ac.rolloutRwy = null;
-          ac.ground = { target: { x:APRON.x, y:APRON.y }, why:'apron' };
+          ac.ground = { path: taxiPath(r, here, true), i:1, why:'apron' };
+        } else {
+          ac.ground = g;
         }
       }
       break;
@@ -2990,15 +3161,24 @@ function groundUpdate(ac, dt) {
 
     case 'crossing':
       ac.ias = ac.gs = 0;
-      if (ac.crossApproved) {
-        ac.phase = 'taxi';
-        ac.ground = { target: { x:APRON.x, y:APRON.y }, why:'apron' };
-        ac.crossingRwy = null;
-        ac.rolloutRwy = null;
-      }
+      if (ac.crossApproved) ac.phase = 'taxi';    // the taxi leg resumes where it stopped
       break;
   }
   ac.track = ac.hdg;
+}
+
+/** A taxi route has run out: either the holding point, or home. */
+function endOfTaxi(ac, rwy) {
+  ac.ground = null;
+  if (ac.kind === 'departure') {
+    ac.phase = 'holdShort';
+    ac.readyAt = state.simTime;
+    ac.hdg = ac.assignedHdg = rwy ? rwy.hdg : ac.hdg;
+    log('pilot', ac.callsign + ' holding short runway ' + ac.departureRwy +
+        ', number ' + queuePosition(ac) + ', ready for departure.');
+  } else {
+    markForRemoval(ac, 'landed');                 // an arrival has reached the apron
+  }
 }
 
 /* --- ground clearances ---------------------------------------------------- */
@@ -3033,9 +3213,7 @@ function cmdTakeoff(ac) {
                            ' is occupied by ' + occ.callsign };
   }
   /* Something on short final to this runway means no departure. */
-  const shortFinal = state.aircraft.find(a => a.alive && a.navMode === 'approach' &&
-    getRunway(a.approach.rwy) && getRunway(a.approach.rwy).phys === rwy.phys &&
-    runwayGeometry(a, getRunway(a.approach.rwy)).along < 4);
+  const shortFinal = arrivalInside(rwy, 4);
   if (shortFinal) {
     return { ok:false, msg:ac.callsign + ': unable, ' + shortFinal.callsign +
                            ' is on short final to runway ' + ac.departureRwy };
@@ -3063,6 +3241,21 @@ function cmdHoldShort(ac) {
                            const hp = holdingPoint(rwy); ac.x = hp.x; ac.y = hp.y; } };
 }
 
+/**
+ * The first aircraft on the approach to this strip, from either end, closer
+ * than `nm` to its threshold.
+ */
+function arrivalInside(rwy, nm) {
+  return state.aircraft.find(a => a.alive && a.navMode === 'approach' &&
+    getRunway(a.approach.rwy) && getRunway(a.approach.rwy).phys === rwy.phys &&
+    runwayGeometry(a, getRunway(a.approach.rwy)).along < nm) || null;
+}
+
+/* A crossing takes about a minute at taxi speed, in which an arrival covers
+   two and a half miles, and the runway has to be clear by two: so nothing
+   crosses in front of anything inside five. */
+const CROSS_FINAL_NM = 5;
+
 function cmdCrossRunway(ac) {
   if (ac.phase !== 'crossing') {
     return { ok:false, msg:ac.callsign + ' is not waiting to cross' };
@@ -3072,6 +3265,11 @@ function cmdCrossRunway(ac) {
   if (occ) {
     return { ok:false, msg:ac.callsign + ': runway ' + ac.crossingRwy + ' is occupied by ' +
                            occ.callsign };
+  }
+  const inbound = arrivalInside(rwy, CROSS_FINAL_NM);
+  if (inbound) {
+    return { ok:false, msg:ac.callsign + ': unable to cross, ' + inbound.callsign +
+                           ' is on final to runway ' + inbound.approach.rwy };
   }
   return { ok:true, msg: ac.callsign + ', cross runway ' + ac.crossingRwy + ' without delay.',
            effect: () => { ac.crossApproved = true; } };
@@ -3113,7 +3311,11 @@ function rolloutUpdate(ac, dt) {
   if (ac.ias < 25 && !ac.emergencyRollout) {
     if (!state.groundOps || (rwy && rwy.apt !== FIELD.id)) { markForRemoval(ac, 'landed'); return; }
     ac.phase = 'vacating';
-    ac.ground = { target: exitPoint(rwy || getRunway(state.activeArr)), why:'runway exit' };
+    const r = rwy || getRunway(state.activeArr);
+    /* Roll on down the centreline to the exit unless it has already passed it. */
+    const past = -runwayGeometry(ac, r).along;
+    const path = past < r.len * EXIT_AT - 0.02 ? [exitStart(r), exitPoint(r)] : [exitPoint(r)];
+    ac.ground = { path, i:0, why:'runway exit' };
   }
 }
 
@@ -5491,6 +5693,9 @@ function drawRunways() {
       }
     }
   }
+  /* taxiways go down first, so the runways are painted over any crossing */
+  if (state.groundOps && state.view.pxPerNm > 14) drawAerodrome();
+
   /* the concrete itself */
   ctx.strokeStyle = C.rwy;
   ctx.lineWidth = Math.max(2, state.view.pxPerNm * 0.16);
@@ -5506,38 +5711,6 @@ function drawRunways() {
   }
   ctx.lineWidth = 1;
 
-  /* the aerodrome: apron, taxi routes and holding points */
-  if (state.groundOps && state.view.pxPerNm > 14) {
-    const ap = worldToScreen(APRON.x, APRON.y);
-    ctx.strokeStyle = '#2c4550';
-    ctx.lineWidth = Math.max(1.5, state.view.pxPerNm * 0.05);
-    for (const r of RUNWAYS) {
-      if (r.id !== '27' && r.id !== '32') continue;      // one holding point per strip
-      const hp = holdingPoint(r);
-      const h = worldToScreen(hp.x, hp.y);
-      ctx.beginPath(); ctx.moveTo(ap.sx, ap.sy); ctx.lineTo(h.sx, h.sy); ctx.stroke();
-      /* the hold-short bar */
-      const perp = { x: r.u.x * 0.06, y: r.u.y * 0.06 };
-      const b1 = worldToScreen(hp.x - perp.x, hp.y - perp.y);
-      const b2 = worldToScreen(hp.x + perp.x, hp.y + perp.y);
-      ctx.strokeStyle = '#c8b040';
-      ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.moveTo(b1.sx, b1.sy); ctx.lineTo(b2.sx, b2.sy); ctx.stroke();
-      ctx.strokeStyle = '#2c4550';
-      ctx.lineWidth = Math.max(1.5, state.view.pxPerNm * 0.05);
-    }
-    ctx.fillStyle = '#1d2f38';
-    const aw = state.view.pxPerNm * 1.7, ah = state.view.pxPerNm * 0.8;
-    ctx.beginPath();
-    if (ctx.roundRect) ctx.roundRect(ap.sx - aw / 2, ap.sy - ah / 2, aw, ah, 6);
-    else ctx.rect(ap.sx - aw / 2, ap.sy - ah / 2, aw, ah);
-    ctx.fill();
-    ctx.fillStyle = C.dim;
-    ctx.font = '9px monospace';
-    ctx.fillText('APRON', ap.sx - 16, ap.sy - ah / 2 - 4);
-    ctx.lineWidth = 1;
-  }
-
   /* field labels */
   ctx.fillStyle = C.rwy;
   ctx.font = 'bold 10px monospace';
@@ -5546,6 +5719,78 @@ function drawRunways() {
     ctx.fillText(apt.name + (apt.primary ? '' : ' \u00b7 RWY ' + state.activeArr2),
                  f.sx - 14, f.sy);
   }
+  ctx.restore();
+}
+
+/**
+ * The aerodrome, drawn from exactly the geometry the ground traffic drives
+ * along: the apron, the taxiway beside each strip, the link from the apron
+ * and the crossing beyond it, the entry at each threshold, the angled exits,
+ * and a hold-short bar wherever a taxiway meets a runway.
+ */
+function drawAerodrome() {
+  const net = taxiNetwork();
+  const px = state.view.pxPerNm;
+  const line = (p, q) => {
+    const a = worldToScreen(p.x, p.y), b = worldToScreen(q.x, q.y);
+    ctx.beginPath(); ctx.moveTo(a.sx, a.sy); ctx.lineTo(b.sx, b.sy); ctx.stroke();
+  };
+  const segs = [];
+  for (const l of net.lanes)   segs.push([l.a, l.b]);
+  for (const k of net.links)   segs.push([k.from, k.to]);
+  for (const e of net.entries) segs.push([e.from, e.to]);
+  for (const x of net.exits)   segs.push([x.from, x.to]);
+
+  ctx.save();
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = '#2c4550';                      // the pavement
+  ctx.lineWidth = Math.max(2, px * 0.075);
+  for (const [a, b] of segs) line(a, b);
+  ctx.strokeStyle = '#3f6472';                      // and its painted centreline
+  ctx.lineWidth = 1;
+  for (const [a, b] of segs) line(a, b);
+  ctx.lineCap = 'butt';
+
+  /* Hold-short bars: across each entry just in front of its holding point,
+     and either side of a runway wherever the spine crosses one. */
+  ctx.strokeStyle = '#c8b040';
+  ctx.lineWidth = Math.max(1.5, px * 0.012);
+  const bar = (at, along) => {
+    const perp = { x: -along.y * 0.07, y: along.x * 0.07 };
+    line({ x: at.x - perp.x, y: at.y - perp.y }, { x: at.x + perp.x, y: at.y + perp.y });
+  };
+  for (const e of net.entries) {
+    const d = dist(e.from.x, e.from.y, e.to.x, e.to.y) || 1;
+    const u = { x: (e.to.x - e.from.x) / d, y: (e.to.y - e.from.y) / d };
+    bar({ x: e.from.x + u.x * 0.05, y: e.from.y + u.y * 0.05 }, u);
+  }
+  for (const k of net.links) {
+    const seen = new Set();
+    for (const r of RUNWAYS) {
+      if (r.apt !== FIELD.id || seen.has(r.phys)) continue;
+      seen.add(r.phys);
+      const hit = segmentCrossing(k.from, k.to, r.thr, r.end);
+      if (!hit) continue;
+      const d = dist(k.from.x, k.from.y, k.to.x, k.to.y) || 1;
+      const u = { x: (k.to.x - k.from.x) / d, y: (k.to.y - k.from.y) / d };
+      for (const side of [-HOLD_SHORT_NM, HOLD_SHORT_NM]) {
+        bar({ x: hit.x + u.x * side, y: hit.y + u.y * side }, u);
+      }
+    }
+  }
+
+  /* the apron over the top of the stub that leads into it */
+  const ap = worldToScreen(APRON.x, APRON.y);
+  const aw = px * APRON_W, ah = px * APRON_H;
+  ctx.fillStyle = '#1d2f38';
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(ap.sx - aw / 2, ap.sy - ah / 2, aw, ah, 6);
+  else ctx.rect(ap.sx - aw / 2, ap.sy - ah / 2, aw, ah);
+  ctx.fill();
+  ctx.fillStyle = C.dim;
+  ctx.font = '9px monospace';
+  ctx.fillText('APRON', ap.sx - 16, ap.sy - ah / 2 - 4);
   ctx.restore();
 }
 
@@ -6428,8 +6673,12 @@ function runAiController(dt) {
 
     if (onGround(ac) && ac.phase !== 'takeoff') {
       if (ac.phase === 'stand' && ac.askedPushback) { say(ac.callsign + ' PB'); continue; }
-      if (ac.phase === 'crossing') { say(ac.callsign + ' XR'); continue; }
-      if (ac.phase === 'holdShort' && queuePosition(ac) === 1) { say(ac.callsign + ' TO'); }
+      /* Wait for the gap rather than asking every three seconds and being
+         told no each time. */
+      if (ac.phase === 'crossing') { if (cmdCrossRunway(ac).ok) say(ac.callsign + ' XR'); continue; }
+      if (ac.phase === 'holdShort' && queuePosition(ac) === 1 && cmdTakeoff(ac).ok) {
+        say(ac.callsign + ' TO');
+      }
       continue;
     }
     if (ac.kind === 'departure') {
@@ -6459,9 +6708,11 @@ function runAiController(dt) {
     }
     const d = dist(ac.x, ac.y, rwy.thr.x, rwy.thr.y);
 
-    /* stack arrivals 1000 ft apart on the way in */
+    /* stack arrivals 1000 ft apart on the way in — the ones still flying: an
+       arrival that has landed and is taxiing in is not in the stack, and
+       counting it pushed everyone behind it a level too high to intercept */
     const queue = state.aircraft
-      .filter(a => a.kind === 'arrival' && a.navMode !== 'approach' && a.alive)
+      .filter(a => a.kind === 'arrival' && a.navMode !== 'approach' && a.alive && !onGround(a))
       .sort((x, y) => dist(x.x, x.y, 0, 0) - dist(y.x, y.y, 0, 0));
     const idx = queue.findIndex(a => a.id === ac.id);
     const floor = 3000 + Math.max(0, idx) * 1000;
@@ -8973,7 +9224,9 @@ const LESSONS = [
     setup: () => {
       state.groundOps = true;
       $('chkGround').checked = true;
-      const d = spawnDepartureNow('TUT801');
+      /* Runway 27: its holding point is on the apron's side, so the lesson is
+         the departure itself and not a runway crossing on the way to it. */
+      const d = spawnDepartureNow('TUT801', '27');
       tutCast('a', commitSpawn(d));
       const a = tutAc('a');
       if (a) { a.askedPushback = true; a.standAt = state.simTime - 30; }
@@ -10104,8 +10357,18 @@ function runSelfTests() {
     for (let i = 0; i < 60 * 30 && !ac.askedPushback; i++) stepSim(DT);
     if (!ac.askedPushback) return 'never requested pushback';
     if (!executeCommandLine('GNDTST PB')) return 'pushback was refused';
-    for (let i = 0; i < 60 * 60 * 6 && ac.phase !== 'holdShort'; i++) stepSim(DT);
+    let crossed = 0;
+    for (let i = 0; i < 60 * 60 * 10 && ac.phase !== 'holdShort'; i++) {
+      /* A departure for the far strip has to cross the near one on the way. */
+      if (ac.phase === 'crossing' && !ac.crossApproved) {
+        if (!executeCommandLine('GNDTST XR')) return 'the crossing was refused on an empty field';
+        crossed++;
+      }
+      stepSim(DT);
+    }
     if (ac.phase !== 'holdShort') return 'never reached the holding point (' + ac.phase + ')';
+    const far = legCrossing({ x:APRON.x, y:APRON.y }, holdingPoint(getRunway(ac.departureRwy)));
+    if (far && crossed === 0) return 'drove across runway ' + far.rwy.id + ' without asking';
     if (queuePosition(ac) !== 1) return 'queue position is ' + queuePosition(ac) + ', expected 1';
     if (!executeCommandLine('GNDTST LUAW')) return 'line up was refused';
     for (let i = 0; i < 60 * 120 && !ac.linedUp; i++) stepSim(DT);
@@ -10114,6 +10377,72 @@ function runSelfTests() {
     if (!executeCommandLine('GNDTST TO')) return 'takeoff was refused';
     for (let i = 0; i < 60 * 60 * 4 && ac.phase !== 'enroute'; i++) stepSim(DT);
     if (ac.phase !== 'enroute') return 'never got airborne (' + ac.phase + ')';
+    return true;
+  }));
+
+  check('taxiing aircraft follow the taxiways and stop short of a runway', () => withSandbox(() => {
+    state.groundOps = true;
+    const net = taxiNetwork();
+    if (net.lanes.length < 2) return 'expected a taxiway beside each strip, got ' + net.lanes.length;
+    /* no taxiway may run over a runway, only square across one */
+    for (const l of net.lanes) {
+      for (const r of RUNWAYS) {
+        if (r.apt !== FIELD.id) continue;
+        if (segmentCrossing(l.a, l.b, r.thr, r.end)) return 'a taxiway lies across runway ' + r.id;
+        if (distToSegment(l.a.x, l.a.y, r.thr.x, r.thr.y, r.end.x, r.end.y) < 0.15 &&
+            distToSegment(l.b.x, l.b.y, r.thr.x, r.thr.y, r.end.x, r.end.y) < 0.15 &&
+            l.phys !== r.phys) return 'a taxiway runs along the wrong runway';
+      }
+    }
+    /* both ends of a strip hold on the same side */
+    for (const r of RUNWAYS) {
+      if (r.apt !== FIELD.id) continue;
+      const hp = holdingPoint(r), t = taxiSide(r);
+      const side = (hp.x - r.thr.x) * t.x + (hp.y - r.thr.y) * t.y;
+      if (side <= 0) return 'runway ' + r.id + ' holds on the far side of its strip';
+    }
+    /* a departure for 32 must ask to cross 09/27, and occupy it only while crossing */
+    const ac = commitSpawn(spawnDepartureNow('XRTST', '32'));
+    if (!ac) return 'no departure spawned';
+    ac.phase = 'pushback'; ac.pushbackT = 0;
+    let waited = 0;
+    for (let i = 0; i < 60 * 60 * 6 && ac.phase !== 'crossing'; i++) {
+      stepSim(DT);
+      /* every step it takes is along a drawn taxiway */
+      if (ac.phase === 'taxi') {
+        let near = distToSegment(ac.x, ac.y, APRON.x - APRON_W / 2, APRON.y, APRON.x + APRON_W / 2, APRON.y) < APRON_H;
+        for (const l of net.lanes) near = near || distToSegment(ac.x, ac.y, l.a.x, l.a.y, l.b.x, l.b.y) < 0.02;
+        for (const k of net.links) near = near || distToSegment(ac.x, ac.y, k.from.x, k.from.y, k.to.x, k.to.y) < 0.02;
+        if (!near) return 'left the taxiways at ' + ac.x.toFixed(2) + ', ' + ac.y.toFixed(2);
+      }
+    }
+    if (ac.phase !== 'crossing') return 'never stopped to ask for the crossing (' + ac.phase + ')';
+    const r27 = getRunway('27');
+    const gap = distToSegment(ac.x, ac.y, r27.thr.x, r27.thr.y, r27.end.x, r27.end.y);
+    if (gap < HOLD_SHORT_NM - 0.03) return 'stopped only ' + gap.toFixed(2) + ' NM from the runway';
+    if (!runwayIsFree(r27)) return 'holding short counted as being on the runway';
+    for (let i = 0; i < 60 * 20; i++) { stepSim(DT); waited++; }
+    if (ac.phase !== 'crossing') return 'crossed without a clearance';
+    /* nothing crosses in front of an arrival on short final */
+    const fin = testAircraft({ x: r27.thr.x - r27.u.x * 4, y: r27.thr.y - r27.u.y * 4,
+                               alt: glideslopeAlt(4), hdg: r27.hdg, ias:150, tag:'xrfin' });
+    fin.kind = 'arrival'; fin.navMode = 'approach';
+    fin.approach = { rwy:'27', locCaptured:true, gsCaptured:true, gateChecked:false, daChecked:false };
+    if (!cmdCrossRunway(ac).ok) return 'the crossing was refused with nothing on final';
+    state.aircraft.push(fin);
+    if (cmdCrossRunway(ac).ok) return 'cleared to cross in front of traffic on a 4 NM final';
+    state.aircraft.splice(state.aircraft.indexOf(fin), 1);
+    if (!executeCommandLine('XRTST XR')) return 'the crossing was refused on an empty field';
+    let wasOn = false;
+    for (let i = 0; i < 60 * 60 * 3 && ac.phase !== 'holdShort'; i++) {
+      stepSim(DT);
+      if (!runwayIsFree(r27)) wasOn = true;
+    }
+    if (!wasOn) return 'crossing the runway never occupied it';
+    if (!runwayIsFree(r27)) return 'the runway stayed occupied after it was across';
+    if (ac.phase !== 'holdShort') return 'never reached the holding point for 32 (' + ac.phase + ')';
+    const hp = holdingPoint(getRunway('32'));
+    if (dist(ac.x, ac.y, hp.x, hp.y) > 0.01) return 'stopped short of the holding point';
     return true;
   }));
 
