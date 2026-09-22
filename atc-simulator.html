@@ -155,7 +155,40 @@ footer{background:var(--panel);border-top:1px solid var(--line);display:flex;fle
 }
 .floating .fbody{padding:9px 11px;overflow:auto;line-height:1.55}
 #quick{left:50%;top:50%;transform:translate(-50%,-50%);width:min(760px,94vw)}
+#quick ol.lessons{margin:4px 0 0 18px;padding:0}
+#quick ol.lessons li{margin:1px 0}
 #diag{right:12px;bottom:150px;width:min(430px,92vw)}
+#lessons{left:50%;top:50%;transform:translate(-50%,-50%);width:min(560px,92vw)}
+
+/* ---------- tutorial ---------- */
+#tutor{left:320px;bottom:158px;width:min(430px,44vw);max-height:calc(100vh - 190px)}
+#tutor .fbody{padding:8px 11px 10px}
+#tutorTitle{color:var(--accent);font-weight:700}
+#tutorStep{line-height:1.5;margin-bottom:6px}
+#tutorStep b{color:#e6f2f7}
+#tutorHint{
+  color:var(--amber);font-size:11px;line-height:1.45;margin:4px 0 6px;
+  border-left:2px solid #5a4410;padding-left:7px;
+}
+#tutorDots{display:flex;gap:4px;margin:6px 0 7px}
+#tutorDots span{
+  flex:1;height:3px;background:var(--line-2);border-radius:2px;
+}
+#tutorDots span.done{background:var(--accent-dim)}
+#tutorDots span.now{background:var(--accent)}
+#tutorBtns{display:flex;gap:4px;flex-wrap:wrap}
+#tutorBtns button{font-size:10px;padding:2px 6px}
+#tutorDone{color:var(--accent);font-weight:700}
+.lessonrow{
+  display:flex;justify-content:space-between;gap:8px;padding:3px 5px;border-radius:3px;
+  cursor:pointer;align-items:baseline;
+}
+.lessonrow:hover{background:#142029}
+.lessonrow.now{background:#14242e;color:#e6f2f7}
+.lessonrow .n{color:var(--txt-dim);min-width:16px}
+.lessonrow .t{flex:1}
+.lessonrow .s{font-size:10px}
+#lessonList{max-height:min(54vh,430px);overflow:auto}
 .hidden{display:none!important}
 h3{margin:9px 0 4px;font-size:11px;color:var(--accent);text-transform:uppercase;letter-spacing:.08em}
 h3:first-child{margin-top:0}
@@ -326,6 +359,7 @@ canvas.spark{display:block;width:100%;height:46px;background:#070f14;border:1px 
   <div class="grp">
     <button id="btnReset" class="danger" title="Restart this scenario with the same seed">RESET</button>
     <button id="btnAudio" title="Alert tones (off by default)">&#128263; MUTED</button>
+    <button id="btnLearn" title="Guided lessons">&#127891; LEARN</button>
     <button id="btnReplay" title="Open the replay scrubber (R)">&#9199; REPLAY</button>
     <button id="btnQuick" title="Quick start / command reference (F1)">? HELP</button>
     <button id="btnDiag" title="Self-test diagnostics">DIAG <span id="diagBadge"></span></button>
@@ -758,6 +792,25 @@ canvas.spark{display:block;width:100%;height:46px;background:#070f14;border:1px 
     <button id="btnQuickClose">CLOSE</button>
   </div>
   <div class="fbody">
+    <h3>New here? Take the lessons</h3>
+    <p><b>&#127891; LEARN</b> in the header opens a course of <b>ten guided lessons</b> that build
+       the whole job up one piece at a time. Each one sets up its own traffic, tells you what to do,
+       and watches what you actually do &mdash; it only moves on when the aircraft are where the
+       step says they should be. There is a hint on every step if you get stuck, and you can skip a
+       step, restart a lesson or jump straight to one from the LESSONS list.</p>
+    <ol class="lessons">
+      <li><b>Reading the radar picture</b> &mdash; selecting traffic, data blocks, pausing.</li>
+      <li><b>Vectors, levels and speed</b> &mdash; the three instructions you give most.</li>
+      <li><b>The crews are not robots</b> &mdash; response times, queries and wrong readbacks.</li>
+      <li><b>Descend via the arrival</b> &mdash; published profiles and crossing restrictions.</li>
+      <li><b>Getting one on the ground</b> &mdash; the approach envelope and why it refuses you.</li>
+      <li><b>Keeping them apart</b> &mdash; predicted conflicts and how to fix one.</li>
+      <li><b>Sequencing a pair</b> &mdash; one runway, two arrivals, holding, the order you decide.</li>
+      <li><b>A departure, stand to handoff</b> &mdash; pushback, the queue, takeoff, route, handoff.</li>
+      <li><b>Wake turbulence</b> &mdash; why 3 NM is not always enough.</li>
+      <li><b>When it goes wrong</b> &mdash; a go-around and an emergency on a hard clock.</li>
+    </ol>
+
     <h3>Your job</h3>
     <ul>
       <li><b>Arrivals</b> enter at an edge fix on a published arrival. Descend and sequence them, then clear an ILS. They must <b>land</b>.</li>
@@ -909,6 +962,42 @@ t=600  weather 400 0.8</pre>
 
 <div id="ctxmenu" class="hidden"></div>
 
+<!-- ============================ TUTORIAL ============================ -->
+<div id="tutor" class="floating hidden">
+  <div class="fhdr">
+    <span><span class="lbl" id="tutorCount"></span> <span id="tutorTitle"></span></span>
+    <span>
+      <button id="btnTutorList" title="Choose a lesson">LESSONS</button>
+      <button id="btnTutorClose">EXIT</button>
+    </span>
+  </div>
+  <div class="fbody">
+    <div id="tutorDots"></div>
+    <div id="tutorStep"></div>
+    <div id="tutorHint" class="hidden"></div>
+    <div id="tutorBtns">
+      <button id="btnTutorHint">SHOW HINT</button>
+      <button id="btnTutorSkip">SKIP STEP</button>
+      <button id="btnTutorRestart">RESTART LESSON</button>
+      <button id="btnTutorNext">NEXT LESSON &#8677;</button>
+    </div>
+  </div>
+</div>
+
+<div id="lessons" class="floating hidden">
+  <div class="fhdr">
+    <strong style="color:var(--accent)">TUTORIAL &mdash; CHOOSE A LESSON</strong>
+    <button id="btnLessonsClose">CLOSE</button>
+  </div>
+  <div class="fbody">
+    <div class="mini" style="margin-bottom:6px">
+      Each lesson sets up its own traffic and watches what you actually do.
+      Work through them in order, or jump to whichever job you want to practise.
+    </div>
+    <div id="lessonList"></div>
+  </div>
+</div>
+
 <!-- ============================ SUMMARY ============================ -->
 <div id="summary" class="hidden">
   <div id="summaryCard">
@@ -1027,7 +1116,11 @@ const SPAWN_CLEAR_NM  = 12;
 const SPAWN_CLEAR_FT  = 1200;
 
 /* --- emergencies --------------------------------------------------------- */
-const FUEL_DEADLINE_S = 540;   // low fuel: hard deadline, 9 minutes
+const FUEL_DEADLINE_S = 720;   // low fuel: hard deadline, 12 minutes
+/* Twelve, not nine: an arrival gets the inject around thirty miles out and
+   ten thousand feet up, and the descent alone costs five. Nine minutes made
+   the emergency scenario unwinnable from the moment it was dealt rather than
+   urgent, which is a different thing. */
 const MED_DEADLINE_S  = 900;   // medical: soft deadline, 15 minutes
 
 /* --- wake turbulence ------------------------------------------------------
@@ -1761,7 +1854,7 @@ const state = {
   /* controller */
   selectedId:null, multiSelect:new Set(), conflicts:new Map(),
   alerts:{ advisories:0, violations:0 },
-  undo:[], workload:[], commandLog:[],
+  undo:[], workload:[], commandLog:[], lastRefusal:null,
 
   /* realism switches */
   pilotRealism:true, radarRealism:false, radarMode:'smooth', radarSweepT:0,
@@ -2607,6 +2700,10 @@ function goAround(ac, reason) {
   ac.assignedHdg = rwy ? rwy.hdg : ac.hdg;
   ac.assignedAlt = Math.round((elev + MISSED_ALT_AGL) / 1000) * 1000;
   ac.assignedIas = Math.min(ac.perf.maxIas, 200);
+  /* The assistant's cached circuit plan described an approach that no longer
+     exists. Drop it, or it keeps steering the aircraft down a centreline it
+     has already flown off the end of. */
+  if (state.aiPlans) state.aiPlans.delete(ac.id);
   state.score.goArounds++;
   log('warn', ac.callsign + ' going around — ' + reason + '. Climbing ' +
       fmtAlt(ac.assignedAlt) + ', runway heading.');
@@ -2637,6 +2734,10 @@ function touchdown(ac, rwy) {
   recordDelivery(ac, rwy);
   if (ac.emergency) {
     state.score.emergenciesHandled++;
+    /* It is down. The countdown was time to the runway, not to the stand, and
+       leaving it running turned a successful landing into a loss the moment the
+       aircraft started taxiing. */
+    ac.emgDeadline = 0;
     ac.emergencyRollout = true;                    // equipment meets the aircraft
     state.groundStopUntil = state.simTime + 180;
     log('emg', ac.callsign + ' is down. Emergency services are on the runway; ' +
@@ -5150,6 +5251,7 @@ function runCommandTokens(ac, tokens, start) {
       else if (r.msg) log('pilot', r.msg);
     } else if (r.msg) {
       log('err', r.msg);
+      state.lastRefusal = { cmd: String(tokens[i] || ''), msg: r.msg, at: state.simTime };
     }
     i += r.consumed;
     if (!ac.alive) break;                       // e.g. handed off mid-line
@@ -6801,7 +6903,11 @@ function updateOverlays() {
     '<div>' + sc.label + ' \u00b7 seed <b>' + state.seedText + '</b></div>' +
     '<div>' + counts.arrival + ' ARR \u00b7 ' + counts.departure + ' DEP \u00b7 ' +
       counts.overflight + ' OVF \u00b7 ' + state.trafficRate + '/hr</div>' +
-    '<div>next in ' + fmtMMSS(Math.max(0, state.nextSpawnIn)) + '</div>';
+    /* With the tap turned off — a lesson, or the rate slider at zero — there is
+       no next arrival, and a countdown to one would be a lie. */
+    (state.trafficRate > 0
+      ? '<div>next in ' + fmtMMSS(Math.max(0, state.nextSpawnIn)) + '</div>'
+      : '<div>no traffic scheduled</div>');
 
   const left = state.sessionLength > 0
     ? fmtMMSS(Math.max(0, state.sessionLength - state.simTime)) + ' left'
@@ -7137,7 +7243,10 @@ function startScenario(seedText, scenarioKey, keepRate) {
     if (victim) declareEmergency(victim, state.rng.pick(['engine','fuel','medical','radio','xpdr']));
   }
   state.tutorial = null;
-  if (key === 'tutorial') startTutorial();
+  state.lastRefusal = null;
+  $('tutor').classList.add('hidden');
+  $('lessons').classList.add('hidden');
+  if (key === 'tutorial') startTutorial(0);
 
   $('replaybar').classList.add('hidden');
   $('btnRbl').classList.remove('on');
@@ -8486,71 +8595,698 @@ function sequenceAccuracy() {
 }
 
 /* --- guided tutorial ------------------------------------------------------
- * One aircraft, one job at a time, advancing when the controller actually does
- * the thing. Nothing is scripted on rails: it watches the real simulation.
+ * A course of lessons rather than one scripted run. Each lesson sets up its
+ * own traffic and then watches the real simulation: a step completes when the
+ * thing it asked for has actually happened, never on a timer.
  * ------------------------------------------------------------------------ */
-const TUTORIAL_STEPS = [
-  { text: 'Welcome to Sector 24. An arrival is checking in from the north. ' +
-          'Click its radar target, or its strip on the left, to select it.',
-    done: () => selectedAircraft() !== null },
-  { text: 'Good. Now put it on the published arrival profile: type ' +
-          'DVA and press Enter (the callsign is optional once it is selected).',
-    done: () => state.aircraft.some(a => a.viaProcedure) },
-  { text: 'It is descending on the STAR. Slow it down for the approach: type S210.',
-    done: () => state.aircraft.some(a => a.assignedIas <= 215) },
-  { text: 'Now vector it onto final for runway ' + '27' +
-          '. Aim for a heading that closes on the extended centreline from the east ' +
-          '(try H270 once it is east of the field, or drag from the target with Shift held).',
-    done: () => state.aircraft.some(a => {
-      const r = getRunway(state.activeArr); if (!r) return false;
-      const g = runwayGeometry(a, r);
-      return g.along > 1 && g.along < 14 && Math.abs(g.xtk) < 2.5;
-    }) },
-  { text: 'It is close to the localiser. Clear the approach: ILS 27. ' +
-          'If the pilot refuses, the message tells you exactly which condition failed.',
-    done: () => state.aircraft.some(a => a.navMode === 'approach') },
-  { text: 'Cleared and established. Watch it down. ' +
-          'Try the PROFILE button in the DISPLAY tab to see the vertical picture.',
-    done: () => state.score.landings > 0 },
-  { text: 'That is the loop: descend, sequence, clear, land. ' +
-          'Pick another scenario from the header when you are ready. ' +
-          'Press F1 at any time for the full command reference.',
-    done: () => false }
-];
 
-function startTutorial() {
-  state.tutorial = { step: 0, spawned: false };
+/** Put a fully-formed aircraft exactly where a lesson needs it. */
+function tutPlace(ac, o) {
+  if (!ac) return null;
+  if (o.x !== undefined) { ac.x = o.x; ac.y = o.y; }
+  if (o.alt !== undefined) { ac.alt = ac.assignedAlt = o.alt; }
+  if (o.hdg !== undefined) { ac.hdg = ac.assignedHdg = ac.track = o.hdg; }
+  if (o.ias !== undefined) { ac.ias = ac.assignedIas = o.ias; }
+  if (o.navMode) ac.navMode = o.navMode;
+  if (o.route) { ac.route = o.route.slice(); ac.procLegs = ac.route.map(f => ({ fix:f }));
+                 ac.routeIndex = 0; }
+  if (o.crew) ac.pilot = Object.assign({}, ac.pilot, o.crew);
+  ac.vs = 0;
+  ac.sectorOwner = bandOf(ac.alt);
+  ac.radar = { x:ac.x, y:ac.y, alt:ac.alt, gs:ac.gs, track:ac.track || ac.hdg,
+               vs:0, t:state.simTime };
+  return ac;
+}
+
+/** An aircraft a lesson put on the scope, by the role it was given. */
+function tutAc(role) {
+  const t = state.tutorial;
+  if (!t || !t.cast || t.cast[role] == null) return null;
+  return state.aircraft.find(a => a.id === t.cast[role]) || null;
+}
+function tutCast(role, ac) {
+  if (!ac) return null;
+  state.tutorial.cast[role] = ac.id;
+  return ac;
+}
+
+/** Clear the sector so a lesson starts from a known picture. */
+function tutClear() {
+  state.aircraft.length = 0;
+  state.removalQueue.length = 0;
+  state.usedCallsigns.clear();
+  state.conflicts.clear();
+  state.wakeLogged = new Set();
+  state.sequence = [];
+  state.selectedId = null;
+  state.multiSelect.clear();
+  state.score = freshScore();
+  state.undo.length = 0;
+  state.lastRefusal = null;
+  stripNodes.clear();
+  el.bayArr.innerHTML = ''; el.bayArr.__empty = null;
+  el.bayDep.innerHTML = ''; el.bayDep.__empty = null;
   state.trafficRate = 0;
+  state.nextSpawnIn = 1e9;
   el.rate.value = 0;
   el.rateVal.textContent = '0/hr';
-  const ac = commitSpawn(spawnArrivalAt('TANGO', 12000, 'TUT001'));
-  state.tutorial.spawned = !!ac;
-  log('sys', 'TUTORIAL: ' + TUTORIAL_STEPS[0].text);
+
+  /* A lesson is its own small session. Restart the clock so the strips, the
+     fuel deadlines and the log all read from zero, and shut down every
+     background process that would otherwise wander into the exercise: the
+     weather, the adjacent sector, flow restrictions, runway changes and any
+     loaded script. Each lesson then starts from exactly the same picture. */
+  state.simTime = 0;
+  state.accumulator = 0;
+  state.stepBudget = 0;
+  state.lastTs = 0;
+  state.conflictTimer = 0;
+  state.alerts = { advisories:0, violations:0 };
+  state.workload.length = 0;
+  state.commandLog.length = 0;
+  state.cells.length = 0;
+  state.wind = { dirFrom:260, speed:12 };
+  state.windDrift = 0;
+  state.metar = { ceiling:8000, vis:10, shear:false, shearUntil:0, lvp:false,
+                  belowMinima:false, t:0, targetCeiling:8000, targetVis:10 };
+  state.shearRate = 0;
+  state.coordination = false;
+  state.coord = { pending:[], nextIn:1e9, seq:0 };
+  state.mit = {};
+  state.acceptRate = 0;
+  state.lastLanding = {};
+  state.groundStopUntil = 0;
+  state.tailwindT = 0;
+  state.rwyChange = null;
+  state.autoRunwayChange = false;
+  state.script = null;
+  state.activeArr = state.activeDep = '27';
+  state.replay = { recording:true, scrubbing:false, frames:[], lastAt:-999 };
+  state.aiPlans = new Map();
+  state.aiTimer = 0; state.aiSaid = 0;
+  state.autoController = false;
+  state.tools = { mode:null, rbl:null, cpa:[] };
+  state.hoverId = null;
+  $('chkAuto').checked = false;
+  $('replaybar').classList.add('hidden');
+  el.log.innerHTML = '';
+}
+
+const LESSONS = [
+  /* ------------------------------------------------------------------ 1 */
+  { id:1, title:'Reading the radar picture',
+    blurb:'Selecting traffic, what a data block tells you, and pausing.',
+    setup: () => {
+      tutCast('a', tutPlace(commitSpawn(spawnArrivalAt('TANGO', 13000, 'TUT101')),
+                            { x:-8, y:20, hdg:170, ias:280 }));
+      tutCast('b', tutPlace(commitSpawn(spawnOverflightAt('ROMEO', 29000, 'TUT102')),
+                            { x:22, y:6, hdg:250, ias:290 }));
+      tutCast('c', tutPlace(commitSpawn(spawnArrivalAt('SIERRA', 11000, 'TUT103')),
+                            { x:6, y:-20, hdg:350, ias:260 }));
+      togglePause(true);
+    },
+    steps: [
+      { text: 'Three aircraft are on frequency, and the clock is <b>paused</b>. ' +
+              'Each one shows a symbol, a trail of where it has been, and a data block ' +
+              'on a leader line. Click <b>TUT101</b> — the target itself, or its strip ' +
+              'in the ARRIVALS bay on the left.',
+        hint: 'Arrival strips are the blue-edged ones at the top left. ' +
+              'Clicking either the strip or the radar target selects it.',
+        done: () => { const a = tutAc('a'); return !!a && state.selectedId === a.id; } },
+
+      { text: 'Look at its data block. Line one is the callsign and wake category; ' +
+              'line two is its altitude, an arrow for climb or descent, then the level ' +
+              'you have cleared it to; line three is groundspeed in tens of knots and ' +
+              'what it is doing. The CONTROL tab on the right says the same thing in full. ' +
+              'Now press <b>Tab</b> to step to the next aircraft.',
+        hint: 'Tab cycles forward through the traffic, Shift+Tab backwards.',
+        done: () => { const a = tutAc('a'); return state.selectedId != null && (!a || state.selectedId !== a.id); } },
+
+      { text: 'Separation here is <b>5 NM and 1000 ft</b> — you need only one of them. ' +
+              'Draw the lateral standard around every target: open the <b>DISPLAY</b> tab ' +
+              'and tick <b>5 NM halo</b>.',
+        hint: 'DISPLAY tab, the Overlay row, first checkbox.',
+        done: () => state.showHalo },
+
+      { text: 'That circle is what has to stay clear of the others, unless you have ' +
+              '1000 ft between them. Now let it run: press <b>PAUSE</b> in the header, ' +
+              'or the <b>`</b> key.',
+        hint: 'The backtick key toggles pause from anywhere, even while typing.',
+        done: () => !state.paused } ] },
+
+  /* ------------------------------------------------------------------ 2 */
+  { id:2, title:'Vectors, levels and speed',
+    blurb:'The three instructions you will spend most of your time giving.',
+    setup: () => {
+      tutCast('a', tutPlace(commitSpawn(spawnArrivalAt('KILO', 14000, 'TUT201')),
+                            { x:18, y:20, hdg:220, ias:290, navMode:'hdg',
+                              crew:{ delay:1.4, query:0, garble:0, refuse:0 } }));
+      togglePause(false);
+    },
+    steps: [
+      { text: 'One arrival, heading south-west. Instructions go in the box at the ' +
+              'bottom: type the command and press Enter. With an aircraft selected ' +
+              'the callsign is optional. Turn it onto <b>heading 210</b>: type ' +
+              '<code>H210</code>.',
+        hint: 'H210 — H for heading, then three digits. ' +
+              'TUT201 H210 works too if nothing is selected.',
+        done: () => { const a = tutAc('a'); return !!a && Math.abs(angleDiff(a.assignedHdg, 210)) < 2; } },
+
+      { text: 'Notice it did not turn the instant you pressed Enter — the crew take a ' +
+              'moment to act, and you will see their readback in the comms log. ' +
+              'Now bring it down: <code>D060</code> descends to 6000 feet.',
+        hint: 'One to three digits is a flight level, so D060 is 6000 ft. ' +
+              'Four or five digits are feet: D6000 is the same thing.',
+        done: () => { const a = tutAc('a'); return !!a && a.assignedAlt <= 6000; } },
+
+      { text: 'And slow it down for the approach: <code>S210</code>.',
+        hint: 'S210. The aircraft will refuse a speed outside what it can fly, ' +
+              'and tell you the range it can accept.',
+        done: () => { const a = tutAc('a'); return !!a && a.assignedIas <= 215; } },
+
+      { text: 'Watch the strip on the left. The <b>white</b> figures are what the ' +
+              'aircraft is doing; the <b>green</b> figures are what you cleared it to. ' +
+              'They converge as it complies. Wait until it is below 8000 feet.',
+        hint: 'Speed the clock up with the 2× or 4× buttons if you are impatient.',
+        done: () => { const a = tutAc('a'); return !!a && a.alt < 8000; } } ] },
+
+  /* ------------------------------------------------------------------ 3 */
+  { id:3, title:'The crews are not robots',
+    blurb:'Response times, queries and wrong readbacks — and the switch that turns them off.',
+    setup: () => {
+      state.pilotRealism = true;
+      $('chkPilot').checked = true;
+      tutCast('a', tutPlace(commitSpawn(spawnOverflightAt('MIKE', 26000, 'TUT301')),
+                            { x:-22, y:17, hdg:120, ias:290, navMode:'hdg',
+                              crew:{ delay:4.5, query:0.45, garble:0.45, refuse:0 } }));
+      togglePause(false);
+    },
+    steps: [
+      { text: 'This crew is having a bad day: slow to respond, and prone to mishearing. ' +
+              'Clear it onto <b>heading 090</b> with <code>H090</code>. If they ask you ' +
+              'to say again, or read back the wrong number, just say it again until it ' +
+              'is right. Watch the comms log.',
+        hint: 'A wrong readback shows up as a READBACK line in the CONTROL tab, ' +
+              'and the aircraft flies what they read back — not what you said.',
+        done: () => { const a = tutAc('a'); return !!a && Math.abs(angleDiff(a.assignedHdg, 90)) < 2; } },
+
+      { text: 'That is the job: you have to <b>listen to the readback</b>, not just ' +
+              'issue the clearance. If you would rather practise without it, open the ' +
+              '<b>SECTOR</b> tab and untick <b>Crew response &amp; error</b>.',
+        hint: 'SECTOR tab, the Realism block, first checkbox.',
+        done: () => !state.pilotRealism },
+
+      { text: 'Instant, perfect crews. Put it back on — the rest of the tutorial ' +
+              'assumes real ones.',
+        hint: 'Same checkbox again.',
+        done: () => state.pilotRealism } ] },
+
+  /* ------------------------------------------------------------------ 4 */
+  { id:4, title:'Descend via the arrival',
+    blurb:'Published procedures, crossing restrictions, and the vertical picture.',
+    setup: () => {
+      const a = commitSpawn(spawnArrivalAt('TANGO', 16000, 'TUT401'));
+      tutCast('a', a);
+      if (a) { a.x = -8; a.y = 28; a.alt = a.assignedAlt = 16000; a.ias = a.assignedIas = 290; }
+      togglePause(false);
+    },
+    steps: [
+      { text: 'This one checked in on the <b>RIDGE2</b> arrival — a published route with ' +
+              'altitude and speed restrictions built into it. You could step it down by ' +
+              'hand a dozen times. Instead, clear it to fly the published profile: ' +
+              'type <code>DVA</code> (descend via arrival).',
+        hint: 'DVA. The procedure it is on is shown in the CONTROL tab under Plan.',
+        done: () => { const a = tutAc('a'); return !!a && !!a.viaProcedure; } },
+
+      { text: 'The crew now own the descent and the speed, and will meet every crossing ' +
+              'restriction on the way. You keep the lateral picture. ' +
+              'Open the side view: <b>DISPLAY</b> tab, then <b>PROFILE</b>.',
+        hint: 'DISPLAY tab, the row of three buttons: RANGE/BRG, CPA, PROFILE.',
+        done: () => state.profileOpen },
+
+      { text: 'The profile strip along the bottom shows distance to the threshold ' +
+              'against altitude, with the 3° glidepath drawn in. Let it fly down the ' +
+              'procedure until it is below <b>7000 feet</b>.',
+        hint: 'Speed the clock up if you like. Cross ALPHA at or below 11000 is the ' +
+              'first restriction it has to meet.',
+        done: () => { const a = tutAc('a'); return !!a && a.alt < 7000; } } ] },
+
+  /* ------------------------------------------------------------------ 5 */
+  { id:5, title:'Getting one on the ground',
+    blurb:'The approach capture envelope, why a clearance gets refused, and landing.',
+    setup: () => {
+      const r = getRunway(state.activeArr) || getRunway('27');
+      tutCast('a', tutPlace(commitSpawn(spawnArrivalAt('ROMEO', 9000, 'TUT501')),
+        { x: r.thr.x - r.u.x * 22, y: r.thr.y - r.u.y * 22 + 9,
+          hdg: normalizeHeading(r.hdg + 40), ias: 280, navMode:'hdg' }));
+      state.lastRefusal = null;
+      togglePause(false);
+    },
+    steps: [
+      { text: 'An approach clearance is only accepted when the aircraft can actually ' +
+              'capture the localiser. Prove it to yourself — try it far too early: ' +
+              'type <code>ILS 27</code> now.',
+        hint: 'ILS 27. Expect it to be refused; read what the reply says.',
+        done: () => !!state.lastRefusal && /^ILS/i.test(state.lastRefusal.cmd || '') },
+
+      { text: 'The refusal named the conditions it failed. It needs to be inside ' +
+              '<b>12 NM</b>, within <b>30°</b> of runway heading, near the extended ' +
+              'centreline, at or below the glidepath, and no faster than 250 knots. ' +
+              'Get it there: descend to <b>3000</b> (<code>D030</code>), slow to ' +
+              '<b>180</b> (<code>S180</code>), and turn it onto the final approach ' +
+              'course from the east.',
+        hint: 'The dashed line east of the field is the extended centreline for ' +
+              'runway 27. Aim to join it from the north-east: something like H240, ' +
+              'then H270 once you are on it. Shift+drag from the target also vectors it.',
+        done: () => { const a = tutAc('a'); const r = getRunway(state.activeArr);
+                      return !!a && !!r && approachEnvelope(a, r).ok; } },
+
+      { text: 'It is in the envelope now. Clear the approach: <code>ILS 27</code>.',
+        hint: 'ILS 27. If it is refused again, the reply says which condition slipped.',
+        done: () => { const a = tutAc('a'); return !!a && a.navMode === 'approach'; } },
+
+      { text: 'Established on the localiser and the glidepath. It flies itself from ' +
+              'here — unless it becomes unstable, in which case it will go around. ' +
+              'Watch it land.',
+        hint: 'The profile view shows it riding down the glidepath.',
+        done: () => state.score.landings >= 1 } ] },
+
+  /* ------------------------------------------------------------------ 6 */
+  { id:6, title:'Keeping them apart',
+    blurb:'Predicted conflicts, loss of separation, and how to fix one.',
+    setup: () => {
+      /* Reciprocal tracks at one level, offset a mile and a half so the closest
+         approach is well inside the minima without being a collision. Head-on
+         is the one geometry the wind cannot spoil: it moves both of them the
+         same way, so the lesson plays out the same whatever is blowing. */
+      tutCast('a', tutPlace(commitSpawn(spawnOverflightAt('WHISKY', 22000, 'TUT601')),
+                            { x:-21, y: 0.7, hdg: 90, ias:290, navMode:'hdg' }));
+      tutCast('b', tutPlace(commitSpawn(spawnOverflightAt('ROMEO', 22000, 'TUT602')),
+                            { x: 21, y:-0.7, hdg:270, ias:290, navMode:'hdg' }));
+      togglePause(false);
+    },
+    steps: [
+      { text: 'Two aircraft, both at <b>FL220</b>, forty miles apart and pointing ' +
+              'straight at each other. Do nothing for a moment and watch: the system ' +
+              'looks two minutes ahead and will raise an <b>amber</b> advisory long ' +
+              'before they are anywhere near each other.',
+        hint: 'The ANALYSIS tab lists every live advisory with the closest point of ' +
+              'approach and how long until it happens. 2x speeds the wait up.',
+        done: () => currentAdvisories().length > 0 },
+
+      { text: 'There is the advisory, with the closest approach and the time to it. ' +
+              'You have about two minutes. The cheapest fix is vertical: select one of ' +
+              'them and climb or descend it — <code>D180</code> or <code>C260</code> — ' +
+              'or turn one off the track. Get the prediction to clear.',
+        hint: 'A thousand feet of separation is enough, so any level change of that ' +
+              'much will do it. Amber turns red if they actually get inside 5 NM and ' +
+              '1000 ft, and that is a separation loss on your record.',
+        fail: () => state.score.violations > 0,
+        failText: 'They got inside 5 NM at the same level — that is a separation loss, ' +
+                  'and it goes on the session record. Restart the lesson and act on ' +
+                  'the advisory as soon as it appears.',
+        done: () => currentAdvisories().length === 0 &&
+                    !!tutAc('a') && !!tutAc('b') },
+
+      { text: 'Clear. If you had left it, the advisory would have gone <b>red</b> and ' +
+              'the loss would be on your session record with the closest distance ' +
+              'logged. Press <b>C</b> at any time to jump straight to whichever pair ' +
+              'the system is shouting about.',
+        hint: 'C works when the command box does not have focus. Click the scope first.',
+        dwell: 6,
+        done: () => true } ] },
+
+  /* ------------------------------------------------------------------ 7 */
+  { id:7, title:'Sequencing a pair',
+    blurb:'One runway, two arrivals, and the order you decide.',
+    setup: () => {
+      const r = getRunway('27');
+      /* Both pointed at the field from opposite quadrants, two thousand feet
+         apart so the picture starts legal and the only problem is the order.
+         Aimed inbound rather than across, so an aircraft you forget about
+         flies towards you for ten minutes instead of straight out of the
+         sector. */
+      tutCast('a', tutPlace(commitSpawn(spawnArrivalAt('KILO', 9000, 'TUT701')),
+        { x: r.thr.x + 19, y: r.thr.y + 13, hdg: 235, ias: 250, navMode:'hdg' }));
+      tutCast('b', tutPlace(commitSpawn(spawnArrivalAt('SIERRA', 7000, 'TUT702')),
+        { x: r.thr.x + 23, y: r.thr.y -  9, hdg: 290, ias: 250, navMode:'hdg' }));
+      state.activeArr = state.activeDep = '27';
+      togglePause(false);
+    },
+    steps: [
+      { text: 'Two arrivals for runway <b>27</b>: one from the north-east at FL090, one ' +
+              'from the south-east at 7000. One runway. Before you vector anything, ' +
+              'decide the order — in the ARRIVALS bay, <b>drag one strip above the ' +
+              'other</b> into the sequence you intend to land them in.',
+        hint: 'Drag a strip by its body and drop it on the other one. ' +
+              'A number appears on each strip once you have set an order.',
+        done: () => state.sequence.length >= 2 },
+
+      { text: 'They are numbered now, and you will be scored against your own plan at ' +
+              'the end. Fly it: bring number one round onto final and clear the ' +
+              'approach. The centreline runs due east from the field.',
+        hint: 'Something like <code>D3000</code>, <code>S200</code>, a heading that ' +
+              'brings it back to the centreline from the side, then <code>ILS 27</code>. ' +
+              'Park the other one meanwhile: <code>HOLD CANDY</code> for the one from ' +
+              'the south or <code>HOLD RIVET</code> for the one from the north puts it ' +
+              'in a racetrack over the approach gate and keeps it out of your way.',
+        fail: () => state.score.busts > 0,
+        failText: 'One of them flew out of the sector without a handoff — a sector bust. ' +
+                  'Nothing parks itself: turn it, slow it, or send it to a racetrack ' +
+                  'with <code>HOLD CANDY</code> while you deal with the other one.',
+        done: () => state.aircraft.some(a => a.navMode === 'approach') },
+
+      { text: 'Now the second. Give the first one room — the radar minimum on final is ' +
+              '3 NM, and more behind a heavy. Land <b>both</b>.',
+        hint: '<code>XH</code> takes an aircraft out of a hold when you want it. If ' +
+              'the second gets too close, slow it down or take it round again: a ' +
+              'go-around costs you far less than a separation loss.',
+        fail: () => state.score.busts > 0,
+        failText: 'One of them flew out of the sector without a handoff — a sector bust. ' +
+                  'Nothing parks itself: turn it, slow it, or send it to a racetrack ' +
+                  'with <code>HOLD CANDY</code> while you deal with the other one.',
+        done: () => state.score.landings >= 2 } ] },
+
+  /* ------------------------------------------------------------------ 8 */
+  { id:8, title:'A departure, from stand to handoff',
+    blurb:'Pushback, the queue, takeoff clearance, climb, route and handoff.',
+    setup: () => {
+      state.groundOps = true;
+      $('chkGround').checked = true;
+      const d = spawnDepartureNow('TUT801');
+      tutCast('a', commitSpawn(d));
+      const a = tutAc('a');
+      if (a) { a.askedPushback = true; a.standAt = state.simTime - 30; }
+      togglePause(false);
+    },
+    steps: [
+      { text: 'Departures start at a <b>stand</b>, not on the runway. This one is ' +
+              'asking for pushback and start. Approve it: <code>PB</code>.',
+        hint: 'PB. The SECTOR tab has an Aerodrome panel listing everything on the ' +
+              'ground and the queue for each runway.',
+        done: () => { const a = tutAc('a'); return !!a && a.phase !== 'stand'; } },
+
+      { text: 'It pushes back and then taxis itself to the holding point — you do not ' +
+              'have to steer it. Wait until it reports <b>holding short</b>.',
+        hint: 'Zoom in past 14 px/NM with the + button to see the apron, the taxi ' +
+              'routes and the hold-short bars drawn on the scope.',
+        done: () => { const a = tutAc('a'); return !!a && (a.phase === 'holdShort' ||
+                      a.phase === 'lineup' || a.phase === 'takeoff' || a.alt > FIELD.elev + 100); } },
+
+      { text: 'Number one in the queue. You can put it on the runway to wait with ' +
+              '<code>LUAW</code>, but here just send it: <code>TO</code>.',
+        hint: 'TO is refused if the runway is occupied or anything is inside 4 NM on ' +
+              'final — the reply tells you which.',
+        done: () => { const a = tutAc('a'); return !!a && (a.phase === 'takeoff' || a.rotated ||
+                      a.alt > FIELD.elev + 100); } },
+
+      { text: 'Airborne. Climb it to <b>FL240</b> (<code>C240</code>) and send it ' +
+              'straight to the exit fix on its strip: <code>DCT TANGO</code>, ' +
+              '<code>DCT ROMEO</code> and so on.',
+        hint: 'The strip shows DEP and the exit fix. The Direct row on the CONTROL ' +
+              'tab has a dropdown if you would rather click it.',
+        done: () => { const a = tutAc('a');
+                      return !!a && a.assignedAlt >= 20000 && a.navMode === 'fix'; } },
+
+      { text: 'Last job: the next sector wants it at <b>FL100 or above</b>, near the ' +
+              'boundary. When it is close enough, hand it over: <code>HO</code>.',
+        hint: 'The strip shows H/O DUE when it is in range. Too early and the reply ' +
+              'tells you how far inside the boundary it still is.',
+        done: () => state.score.handoffs >= 1 } ] },
+
+  /* ------------------------------------------------------------------ 9 */
+  { id:9, title:'Wake turbulence',
+    blurb:'Why 3 NM is not always enough behind a big aeroplane.',
+    setup: () => {
+      const r = getRunway(state.activeArr) || getRunway('27');
+      const heavy = commitSpawn(spawnArrivalAt('ROMEO', 4000, 'TUT901'));
+      if (heavy) {
+        heavy.cls = 'heavy'; heavy.perf = PERF.heavy; heavy.wake = 'H'; heavy.type = 'B77W';
+        tutPlace(heavy, { x: r.thr.x - r.u.x * 9, y: r.thr.y - r.u.y * 9,
+                          alt: glideslopeAlt(9, r) - 60, hdg: r.hdg, ias: 170, navMode:'hdg' });
+        tutCast('lead', heavy);
+      }
+      const light = commitSpawn(spawnArrivalAt('ROMEO', 4000, 'TUT902'));
+      if (light) {
+        light.cls = 'light'; light.perf = PERF.light; light.wake = 'L'; light.type = 'C560';
+        tutPlace(light, { x: r.thr.x - r.u.x * 16, y: r.thr.y - r.u.y * 16,
+                          alt: glideslopeAlt(16, r) - 60, hdg: r.hdg, ias: 230, navMode:'hdg' });
+        tutCast('follow', light);
+      }
+      togglePause(true);
+    },
+    steps: [
+      { text: 'A <b>B77W heavy</b> on a 9 mile final, and a <b>C560 light</b> seven ' +
+              'miles behind it doing 230 knots — sixty knots faster. Behind a heavy, a ' +
+              'light needs <b>6 NM</b>, not the 3 NM radar minimum. The gap is closing. ' +
+              'Slow the follower down: select <b>TUT902</b> and give it <code>S140</code>.',
+        hint: 'The clock is paused. Give the instruction first, then un-pause and ' +
+              'watch the gap.',
+        done: () => { const f = tutAc('follow'); return !!f && f.assignedIas <= 150; } },
+
+      { text: 'Now clear the heavy for the approach (<code>ILS 27</code> with TUT901 ' +
+              'selected), un-pause, and keep the light at least <b>6 NM</b> behind it ' +
+              'all the way down. Land the heavy without a wake alert.',
+        hint: 'If the gap gets tight, slow the follower further or take it off the ' +
+              'approach with a vector and bring it back round.',
+        fail: () => state.score.wakeViolations > 0,
+        failText: 'The light got inside 6 NM of the heavy — that is a wake separation ' +
+                  'loss. Restart the lesson to try again.',
+        done: () => state.score.landings >= 1 },
+
+      { text: 'The heavy is down. Wake spacing is checked on every pair on final, and ' +
+              'a loss is recorded separately from a radar one. The full table runs from ' +
+              '3 NM up to 8 NM for a light behind a super.',
+        hint: 'Low visibility procedures add another 2 NM on top of all of it.',
+        dwell: 6,
+        done: () => true } ] },
+
+  /* ----------------------------------------------------------------- 10 */
+  { id:10, title:'When it goes wrong',
+    blurb:'Go-arounds and an emergency that has to be got down.',
+    setup: () => {
+      const r = getRunway('27');
+      /* Pinned to a medium jet and put five miles out at 245 knots: from there
+         no amount of braking gets it below the stability gate's speed by three
+         miles, so the go-around is the lesson rather than a coin toss. */
+      const a = commitSpawn(spawnArrivalAt('ROMEO', 6000, 'TUTA01'));
+      if (a) {
+        a.cls = 'medium'; a.perf = PERF.medium; a.wake = 'M'; a.type = 'A320';
+        /* A shade under the glidepath, so the crew take it straight away and the
+           only thing left to fail at the gate is the speed. */
+        tutPlace(a, { x: r.thr.x - r.u.x * 5, y: r.thr.y - r.u.y * 5,
+                      alt: glideslopeAlt(5, r) - 150, hdg: r.hdg, ias: 245, navMode:'hdg' });
+        a.assignedIas = 245;
+        tutCast('a', a);
+      }
+      state.activeArr = state.activeDep = '27';
+      togglePause(false);
+    },
+    steps: [
+      { text: 'An A320 on a five mile final doing <b>245 knots</b> — far too fast to ' +
+              'land. Clear it for the approach anyway — <code>ILS 27</code> — and watch ' +
+              'what happens at the three mile gate.',
+        hint: 'The stability gate checks the localiser, the glidepath, and the speed. ' +
+              'Fail any of them and the crew go around.',
+        done: () => state.score.goArounds >= 1 },
+
+      { text: 'It went around: climbing on runway heading to 4000 feet. A go-around is ' +
+              'not a disaster — it is what you want when an approach is not working. ' +
+              'Now give yourself a real problem: on the <b>CONTROL</b> tab, with it ' +
+              'selected, press <b>LOW FUEL</b>.',
+        hint: 'The Emergency inject block at the bottom of the CONTROL tab.',
+        done: () => state.aircraft.some(a => a.emergency) },
+
+      { text: 'It has a hard deadline now, counting down on its strip. Everything else ' +
+              'waits. Turn it round, get it into the envelope and on the ground before ' +
+              'the fuel runs out.',
+        hint: 'Fly it a circuit and do not waste a mile. <code>H180</code> and ' +
+              '<code>S200</code> straight away. It is climbing to 4000 on the missed ' +
+              'approach, so <code>D3000</code> is refused until it gets there — give ' +
+              'it once it levels off, because the glidepath has to be met from below. ' +
+              'Four miles abeam turn <code>H090</code> and run out to about thirteen ' +
+              'miles east, then <code>H315</code> to come back at forty-five degrees. ' +
+              'Inside a mile and a half of the centreline, <code>H295</code>, ' +
+              '<code>S170</code> and <code>ILS 27</code>: the crew take the localiser ' +
+              'from within a mile of it. The clock buttons run it at 2× or 4×.',
+        fail: () => state.score.crashes > 0,
+        failText: 'It ran out of fuel. That is what the deadline means. Restart the ' +
+                  'lesson and get it down sooner.',
+        done: () => state.score.landings >= 1 },
+
+      { text: 'Down. That is the whole job: descend, sequence, separate, clear, land, ' +
+              'and deal with what goes wrong. Pick a scenario from the header when you ' +
+              'are ready, or press <b>F1</b> for the full command reference.',
+        hint: 'The campaign on the SECTOR tab is ten shifts that get harder, ' +
+              'each with its own pass mark.',
+        done: () => false } ] }
+];
+
+/* --- the lesson engine ---------------------------------------------------- */
+
+function startTutorial(lessonIndex) {
+  const i = clamp(lessonIndex || 0, 0, LESSONS.length - 1);
+  state.tutorial = { lesson:i, step:0, cast:{}, hintShown:false, failed:null,
+                     stepAt: state.simTime };
+  state.sessionLength = 0;
+  el.duration.value = '0';
+  state.ended = false;
+  $('summary').classList.add('hidden');
+  tutClear();
+  const lesson = LESSONS[i];
+  try { lesson.setup(); } catch (e) { log('err', 'That lesson could not be set up.'); }
+  log('sys', 'LESSON ' + lesson.id + ' — ' + lesson.title + ': ' + lesson.blurb);
+  updateStrips(true);
+  updateSidePanel();
   showTutorial();
+}
+
+function tutorStep() {
+  const t = state.tutorial;
+  if (!t) return null;
+  const lesson = LESSONS[t.lesson];
+  return lesson ? lesson.steps[t.step] : null;
 }
 
 function showTutorial() {
   const t = state.tutorial;
-  if (!t) { $('bannerRwy').classList.add('hidden'); return; }
-  const step = TUTORIAL_STEPS[t.step];
-  const b = $('bannerRwy');
-  b.textContent = 'TUTORIAL ' + (t.step + 1) + '/' + TUTORIAL_STEPS.length + '  ·  ' + step.text;
-  b.classList.remove('hidden');
+  const panel = $('tutor');
+  if (!t) { panel.classList.add('hidden'); return; }
+  const lesson = LESSONS[t.lesson];
+  const step = tutorStep();
+  panel.classList.remove('hidden');
+  $('tutorCount').textContent = 'LESSON ' + lesson.id + '/' + LESSONS.length;
+  $('tutorTitle').textContent = lesson.title;
+
+  $('tutorDots').innerHTML = lesson.steps.map((_, i) =>
+    '<span class="' + (i < t.step ? 'done' : i === t.step ? 'now' : '') + '"></span>').join('');
+
+  if (t.failed) {
+    $('tutorStep').innerHTML = '<span class="fail">' + t.failed + '</span>';
+  } else if (step) {
+    $('tutorStep').innerHTML = step.text;
+  } else {
+    $('tutorStep').innerHTML = '<span id="tutorDone">Lesson complete.</span> ' +
+      (t.lesson < LESSONS.length - 1 ? 'Press NEXT LESSON to carry on.'
+                                     : 'That is the last lesson — the sector is yours.');
+  }
+
+  const hint = $('tutorHint');
+  if (step && step.hint && t.hintShown) {
+    /* Hints are authored in this file and mark up the commands they name, so
+       they go in as markup, exactly like the step text above. */
+    hint.innerHTML = step.hint;
+    hint.classList.remove('hidden');
+  } else {
+    hint.classList.add('hidden');
+  }
+  $('btnTutorHint').disabled = !(step && step.hint) || t.hintShown;
+  $('btnTutorSkip').disabled = !step;
 }
 
+/** Called from the UI tick: advance when the step's condition is actually met. */
 function updateTutorial() {
   const t = state.tutorial;
-  if (!t || state.scenario !== 'tutorial') return;
-  const step = TUTORIAL_STEPS[t.step];
-  if (!step) return;
+  if (!t) return;
+  const lesson = LESSONS[t.lesson];
+  if (!lesson) return;
+  const step = lesson.steps[t.step];
+  if (!step || t.failed) return;
+
+  if (step.fail) {
+    let bad = false;
+    try { bad = !!step.fail(); } catch (e) { bad = false; }
+    if (bad) {
+      t.failed = step.failText || 'That did not work out. Restart the lesson to try again.';
+      tone('alert');
+      showTutorial();
+      return;
+    }
+  }
+  if (step.dwell && state.simTime - (t.stepAt || 0) < step.dwell) return;
+
   let ok = false;
   try { ok = !!step.done(); } catch (e) { ok = false; }
-  if (ok && t.step < TUTORIAL_STEPS.length - 1) {
-    t.step++;
-    log('ok', 'TUTORIAL: ' + TUTORIAL_STEPS[t.step].text);
-    showTutorial();
+  if (!ok) return;
+
+  t.step++;
+  t.stepAt = state.simTime;
+  t.hintShown = false;
+  if (t.step < lesson.steps.length) {
+    log('ok', 'LESSON ' + lesson.id + ', step ' + (t.step + 1) + ' of ' + lesson.steps.length + '.');
+  } else {
+    log('ok', 'LESSON ' + lesson.id + ' complete — ' + lesson.title + '.');
+    tone('wx');
   }
+  showTutorial();
 }
+
+function exitTutorial() {
+  state.tutorial = null;
+  $('tutor').classList.add('hidden');
+  $('lessons').classList.add('hidden');
+}
+
+function renderLessonList() {
+  const t = state.tutorial;
+  $('lessonList').innerHTML = LESSONS.map((l, i) =>
+    '<div class="lessonrow' + (t && t.lesson === i ? ' now' : '') + '" data-lesson="' + i + '">' +
+    '<span class="n">' + l.id + '.</span>' +
+    '<span class="t"><b>' + l.title + '</b><br><span class="m-sys s">' + l.blurb + '</span></span>' +
+    '</div>').join('');
+}
+
+$('btnTutorClose').addEventListener('click', exitTutorial);
+$('btnTutorHint').addEventListener('click', () => {
+  if (!state.tutorial) return;
+  state.tutorial.hintShown = true;
+  showTutorial();
+});
+$('btnTutorSkip').addEventListener('click', () => {
+  const t = state.tutorial;
+  if (!t) return;
+  const lesson = LESSONS[t.lesson];
+  if (t.step >= lesson.steps.length) return;
+  t.step++;
+  t.stepAt = state.simTime;
+  t.hintShown = false;
+  t.failed = null;
+  log('sys', 'Step skipped.');
+  showTutorial();
+});
+$('btnTutorRestart').addEventListener('click', () => {
+  if (state.tutorial) startTutorial(state.tutorial.lesson);
+});
+$('btnTutorNext').addEventListener('click', () => {
+  if (!state.tutorial) { startTutorial(0); return; }
+  if (state.tutorial.lesson >= LESSONS.length - 1) {
+    log('sys', 'That is the last lesson.');
+    return;
+  }
+  startTutorial(state.tutorial.lesson + 1);
+});
+$('btnTutorList').addEventListener('click', () => {
+  renderLessonList();
+  $('lessons').classList.toggle('hidden');
+});
+$('btnLessonsClose').addEventListener('click', () => $('lessons').classList.add('hidden'));
+$('btnLearn').addEventListener('click', () => {
+  if (state.scenario !== 'tutorial') {
+    el.scenario.value = 'tutorial';
+    state.campaign.active = false;
+    $('ratingBadge').textContent = '';
+    startScenario(el.seed.value, 'tutorial', false);
+  }
+  renderLessonList();
+  $('lessons').classList.remove('hidden');
+});
+$('lessonList').addEventListener('click', ev => {
+  const row = ev.target.closest ? ev.target.closest('.lessonrow') : null;
+  if (!row) return;
+  const i = parseInt(row.getAttribute('data-lesson'), 10);
+  $('lessons').classList.add('hidden');
+  if (Number.isFinite(i)) startTutorial(i);
+});
 
 /* --- exporting ------------------------------------------------------------ */
 function downloadText(name, text, mime) {
@@ -9538,6 +10274,107 @@ function runSelfTests() {
     if (state.score.landings !== 1) return 'it never landed at the satellite';
     return true;
   }));
+
+  /* --- the lesson course ------------------------------------------------ */
+
+  check('every lesson is structurally complete', () => {
+    const bad = [];
+    LESSONS.forEach((l, i) => {
+      if (l.id !== i + 1) bad.push('lesson ' + i + ' has id ' + l.id);
+      if (!l.title || !l.blurb) bad.push('lesson ' + l.id + ' has no title or blurb');
+      if (typeof l.setup !== 'function') bad.push('lesson ' + l.id + ' has no setup');
+      if (!Array.isArray(l.steps) || !l.steps.length) bad.push('lesson ' + l.id + ' has no steps');
+      (l.steps || []).forEach((st, k) => {
+        const where = 'lesson ' + l.id + ' step ' + (k + 1);
+        if (!st.text) bad.push(where + ' has no text');
+        if (typeof st.done !== 'function') bad.push(where + ' has no done()');
+        if (st.fail && !st.failText) bad.push(where + ' can fail with nothing to say');
+        if (st.hint !== undefined && typeof st.hint !== 'string') bad.push(where + ' has a non-string hint');
+      });
+    });
+    return bad.length ? bad.join('; ') : true;
+  });
+
+  check('every lesson step answers yes or no without a cast', () => withSandbox(() => {
+    /* A step whose done() throws when its aircraft is gone would wedge the
+       lesson silently, so every predicate is called against an empty world. */
+    const bad = [];
+    LESSONS.forEach((l, i) => {
+      state.tutorial = { lesson:i, step:0, cast:{}, hintShown:false, failed:null, stepAt:0 };
+      l.steps.forEach((st, k) => {
+        const where = 'lesson ' + l.id + ' step ' + (k + 1);
+        for (const name of ['done', 'fail']) {
+          if (typeof st[name] !== 'function') continue;
+          let v;
+          try { v = st[name](); }
+          catch (e) { bad.push(where + ' ' + name + '() threw: ' + e.message); continue; }
+          if (typeof v !== 'boolean') bad.push(where + ' ' + name + '() returned ' + typeof v);
+        }
+      });
+    });
+    return bad.length ? bad.join('; ') : true;
+  }));
+
+  check('every command a lesson quotes is one the parser accepts', () => withSandbox(() => {
+    /* The lessons tell the student exactly what to type. If any of it is not a
+       real command, or is missing an argument, they are being taught a lie. */
+    const snippets = new Set();
+    for (const l of LESSONS) {
+      for (const st of l.steps) {
+        for (const src of [st.text, st.hint || '']) {
+          const re = /<code>([^<]+)<\/code>/g;
+          let m;
+          while ((m = re.exec(src))) snippets.add(m[1].trim());
+        }
+      }
+    }
+    const ac = testAircraft({ tag:'lesson', x:12, y:0, alt:6000, hdg:270, ias:210 });
+    ac.kind = 'arrival';
+    state.aircraft.push(ac);
+    const bad = [];
+    for (const snip of snippets) {
+      state.lastRefusal = null;
+      try { executeCommandLine(ac.callsign + ' ' + snip, { allowMulti:false }); }
+      catch (e) { bad.push(snip + ' threw: ' + e.message); continue; }
+      const msg = state.lastRefusal ? state.lastRefusal.msg : '';
+      if (/is not a command|not understood|needs a/i.test(msg)) bad.push(snip + ' -> ' + msg);
+    }
+    return bad.length ? bad.join('; ') : true;
+  }));
+
+  check('every lesson sets up traffic inside the sector', () => {
+    /* A lesson's setup() ticks the boxes that go with the switches it flips, and
+       the DOM is outside the sandbox, so every checkbox is saved and put back:
+       running the diagnostics must never change the session's settings. */
+    const boxes = Array.from(document.querySelectorAll('input[type=checkbox]'));
+    const wasChecked = boxes.map(b => b.checked);
+    const result = withSandbox(() => {
+      const bad = [];
+      LESSONS.forEach((l, i) => {
+        state.aircraft.length = 0;
+        state.usedCallsigns.clear();
+        state.tutorial = { lesson:i, step:0, cast:{}, hintShown:false, failed:null, stepAt:0 };
+        try { l.setup(); }
+        catch (e) { bad.push('lesson ' + l.id + ' setup threw: ' + e.message); return; }
+        if (!state.aircraft.length) { bad.push('lesson ' + l.id + ' put nothing on frequency'); return; }
+        for (const ac of state.aircraft) {
+          if (!pointInPolygon(ac.x, ac.y, SECTOR)) {
+            bad.push('lesson ' + l.id + ': ' + ac.callsign + ' starts outside the sector');
+          }
+          if (!Number.isFinite(ac.alt) || !Number.isFinite(ac.x) || !Number.isFinite(ac.y)) {
+            bad.push('lesson ' + l.id + ': ' + ac.callsign + ' has a non-finite state');
+          }
+        }
+        for (const role in state.tutorial.cast) {
+          if (!tutAc(role)) bad.push('lesson ' + l.id + ' cast "' + role + '" is not on frequency');
+        }
+      });
+      return bad.length ? bad.join('; ') : true;
+    });
+    boxes.forEach((b, i) => { b.checked = wasChecked[i]; });
+    updatePauseButton();
+    return result;
+  });
 
   check('the test sandbox leaks nothing into the live session', () => {
     const before = {};

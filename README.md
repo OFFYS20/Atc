@@ -6,6 +6,34 @@ dependencies, no CDN, no ES modules, no network, no browser storage. Open
 
 ![the scope](docs/scope.png)
 
+## Start here: the lessons
+
+**🎓 LEARN** in the header opens a course of **ten guided lessons** that build the job
+up one piece at a time. Each lesson sets up its own traffic, tells you what to do, and
+then watches what you actually do — it only moves on when the aircraft are where the
+step says they should be, and some steps fail you if you break something. Every step
+has a hint, and you can skip a step, restart a lesson, or jump straight to any of them.
+
+![the lesson list](docs/lessons.png)
+
+| # | Lesson | What it teaches |
+| --- | --- | --- |
+| 1 | Reading the radar picture | selecting traffic, what a data block says, pausing |
+| 2 | Vectors, levels and speed | the three instructions you give most |
+| 3 | The crews are not robots | response times, queries, wrong readbacks, and the switch |
+| 4 | Descend via the arrival | published profiles and crossing restrictions |
+| 5 | Getting one on the ground | the approach envelope and why it refuses you |
+| 6 | Keeping them apart | predicted conflicts, and fixing one before it goes red |
+| 7 | Sequencing a pair | one runway, two arrivals, a hold, and the order you decide |
+| 8 | A departure, stand to handoff | pushback, the queue, takeoff, climb, route, handoff |
+| 9 | Wake turbulence | why 3 NM is not always enough behind a big aeroplane |
+| 10 | When it goes wrong | an unstable approach, a go-around, and an emergency on a clock |
+
+*Lesson 7 in progress: one arrival established on the ILS, the other parked in a
+racetrack at CANDY, both strips numbered with the order you chose.*
+
+![a lesson in progress](docs/lesson.png)
+
 ## What you are working
 
 One ~60 × 60 NM sector around **KSIM** (field elevation 640 ft, runways 09/27 and
@@ -147,7 +175,7 @@ your own plan. Press `R` to scrub the replay back, watch a conflict develop, the
 **TAKE OVER HERE** to carry on from that moment against identical traffic — each
 separation loss in the summary has its own REPLAY button.
 
-Ten scenarios, including a guided tutorial, low visibility, wind shift, flow control
+Ten scenarios, including the lesson course, low visibility, wind shift, flow control
 and sector coordination. A session can be written as a short text script and shared:
 
 ```
@@ -178,7 +206,7 @@ t=420  rwy 09
 
 ## Self-tests
 
-46 invariant checks run on load — angle wrapping, shortest-arc turns, turn and
+50 invariant checks run on load — angle wrapping, shortest-arc turns, turn and
 altitude capture stability, separation symmetry, the 5.0 NM / 1000 ft boundary case,
 pair-once conflict evaluation, alert hysteresis, accumulator conservation, hold entry
 classification, command-parser robustness, the approach envelope, removal sweeps and
@@ -188,6 +216,9 @@ the advisor and hint output, the AI controller actually landing traffic, the ful
 ground sequence from stand to airborne, runway exclusivity, campaign judging, airspace
 export round-tripping, refusal of a broken airspace, real-world coordinate conversion,
 the vertical split in both directions, the second airport, export formatting,
-efficiency accounting, and that the test sandbox leaks nothing into the live session.
+efficiency accounting, that every lesson is structurally complete and its step
+predicates answer yes or no against an empty world, that every command a lesson tells
+you to type is one the parser actually accepts, and that the test sandbox leaks
+nothing into the live session.
 
 Results are in the **DIAG** panel; the header badge shows the pass count.
